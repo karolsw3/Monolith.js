@@ -1,0 +1,28 @@
+{
+  "name": "monolith",
+  "version": "1.0.0",
+  "description": "A 3D javascript isometric game engine made with three.js",
+  "main": "index.js",
+  "scripts": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/karolsw2/Monolith.js.git"
+  },
+  "keywords": [
+    "monolith",
+    "isometric",
+    "game",
+    "engine"
+  ],
+  "author": "Karol Świerczek",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/karolsw2/Monolith.js/issues"
+  },
+  "homepage": "https://github.com/karolsw2/Monolith.js#readme",
+  "dependencies": {
+    "three": "^0.91.0"
+  }
+}
