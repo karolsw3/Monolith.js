@@ -23,6 +23,13 @@
   },
   "homepage": "https://github.com/karolsw2/Monolith.js#readme",
   "dependencies": {
+    "babel-core": "^6.26.0",
+    "rollup-plugin-babel": "^3.0.3",
+    "rollup-plugin-node-resolve": "^3.3.0",
     "three": "^0.91.0"
+  },
+  "devDependencies": {
+    "babel-plugin-external-helpers": "^6.22.0",
+    "babel-preset-env": "^1.6.1"
   }
 }
