@@ -1,10 +1,8 @@
 var monolith = new Monolith({
-  sizeX: 20,
-  sizeY: 20,
-  sizeZ: 30,
   blockWidth: 3,
   blockHeight: 1
 })
 
 monolith.init()
-monolith.generateFloor(8, 8)
+monolith.generateFloor(12, 12)
+monolith.placeObject(monolith.createBlock(0xff44ff), 4, 1, 5)

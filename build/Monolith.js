@@ -45443,7 +45443,7 @@ var Monolith = function () {
       var w = this.settings.blockWidth;
       var e = 100;
       var geometry = new PlaneBufferGeometry(w * e, w * e, w * e, w * e);
-      var material = new MeshBasicMaterial({ wireframe: true, opacity: 0.1, transparent: true });
+      var material = new MeshBasicMaterial({ wireframe: true, opacity: 0.05, transparent: true });
       var grid = new Mesh(geometry, material);
       grid.rotation.order = 'YXZ';
       grid.rotation.y = -Math.PI / 2;
@@ -45473,8 +45473,8 @@ var Monolith = function () {
       return block;
     }
   }, {
-    key: 'placeBlock',
-    value: function placeBlock(block, x, y, z) {
+    key: 'placeObject',
+    value: function placeObject(block, x, y, z) {
       var w = this.settings.blockWidth;
       var h = this.settings.blockHeight;
       block.position.x = -x * w;
@@ -45488,12 +45488,13 @@ var Monolith = function () {
       for (var x = 0; x < length; x++) {
         for (var z = 0; z < width; z++) {
           if (x % 2 === 0 && z % 2 === 0 || x % 2 === 1 && z % 2 === 1) {
-            this.placeBlock(this.createBlock(0x44ff55), x, 0, z);
+            this.placeObject(this.createBlock(0x44ff55), x, 0, z);
           } else {
-            this.placeBlock(this.createBlock(0x33ee44), x, 0, z);
+            this.placeObject(this.createBlock(0x33ee44), x, 0, z);
           }
         }
       }
+      this.camera.position.y = this.settings.blockWidth * (length / 2);
     }
   }, {
     key: '_animate',

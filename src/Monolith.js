@@ -32,7 +32,7 @@ class Monolith {
     let w = this.settings.blockWidth
     let e = 100
     var geometry = new THREE.PlaneBufferGeometry(w * e, w * e, w * e, w * e)
-    var material = new THREE.MeshBasicMaterial({ wireframe: true, opacity: 0.1, transparent: true })
+    var material = new THREE.MeshBasicMaterial({ wireframe: true, opacity: 0.05, transparent: true })
     var grid = new THREE.Mesh(geometry, material)
     grid.rotation.order = 'YXZ'
     grid.rotation.y = -Math.PI / 2
@@ -60,7 +60,7 @@ class Monolith {
     return block
   }
 
-  placeBlock (block, x, y, z) {
+  placeObject (block, x, y, z) {
     let w = this.settings.blockWidth
     let h = this.settings.blockHeight
     block.position.x = -x * w
@@ -73,12 +73,13 @@ class Monolith {
     for (let x = 0; x < length; x++) {
       for (let z = 0; z < width; z++) {
         if ((x % 2 === 0 && z % 2 === 0) || (x % 2 === 1 && z % 2 === 1)) {
-          this.placeBlock(this.createBlock(0x44ff55), x, 0, z)
+          this.placeObject(this.createBlock(0x44ff55), x, 0, z)
         } else {
-          this.placeBlock(this.createBlock(0x33ee44), x, 0, z)
+          this.placeObject(this.createBlock(0x33ee44), x, 0, z)
         }
       }
     }
+    this.camera.position.y = this.settings.blockWidth * (length / 2)
   }
 
   _animate () {
