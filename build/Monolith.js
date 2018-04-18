@@ -45425,26 +45425,58 @@ var Monolith = function () {
   createClass(Monolith, [{
     key: 'init',
     value: function init() {
-      this.scene.background = new Color('rgb(23,0,0)');
-      this.scene.add(new AmbientLight(0x444444));
-      this.scene.add(new AxesHelper(40));
+      this.scene.background = new Color('rgb(53,12,63)');
+      this.scene.add(new AxesHelper(60));
       this.camera.position.set(this.settings.blockWidth, this.settings.blockWidth, this.settings.blockWidth);
       this.camera.lookAt(this.scene.position);
-
-      var light = new AmbientLight(0x404040);
-      this.scene.add(light);
-
+      this._addLights();
+      this._addGrid();
       this.renderer.setSize(window.innerWidth, window.innerHeight);
+      this.renderer.shadowMapEnabled = true;
       document.body.appendChild(this.renderer.domElement);
 
       requestAnimationFrame(this._animate);
     }
   }, {
-    key: 'placeBlock',
-    value: function placeBlock(x, y, z) {
+    key: '_addGrid',
+    value: function _addGrid() {
+      var w = this.settings.blockWidth;
+      var e = 100;
+      var geometry = new PlaneBufferGeometry(w * e, w * e, w * e, w * e);
+      var material = new MeshBasicMaterial({ wireframe: true, opacity: 0.1, transparent: true });
+      var grid = new Mesh(geometry, material);
+      grid.rotation.order = 'YXZ';
+      grid.rotation.y = -Math.PI / 2;
+      grid.rotation.x = -Math.PI / 2;
+      this.scene.add(grid);
+    }
+  }, {
+    key: '_addLights',
+    value: function _addLights() {
+      this.scene.add(new AmbientLight(0x444444));
+      var spotLightTop = new SpotLight(0xaaaaaa);
+      var spotLightLeft = new SpotLight(0x444444);
+      spotLightTop.position.set(0, 120, 0);
+      spotLightTop.castShadow = true;
+      spotLightLeft.position.set(0, 0, 120);
+      spotLightLeft.castShadow = true;
+
+      this.scene.add(spotLightTop);
+      this.scene.add(spotLightLeft);
+    }
+  }, {
+    key: 'createBlock',
+    value: function createBlock(color) {
       var w = this.settings.blockWidth;
       var h = this.settings.blockHeight;
-      var block = new Mesh(new BoxGeometry(w, h, w), new MeshNormalMaterial());
+      var block = new Mesh(new BoxGeometry(w, h, w), new MeshLambertMaterial({ color: color }));
+      return block;
+    }
+  }, {
+    key: 'placeBlock',
+    value: function placeBlock(block, x, y, z) {
+      var w = this.settings.blockWidth;
+      var h = this.settings.blockHeight;
       block.position.x = -x * w;
       block.position.y = y * h;
       block.position.z = -z * w;
@@ -45455,7 +45487,11 @@ var Monolith = function () {
     value: function generateFloor(length, width) {
       for (var x = 0; x < length; x++) {
         for (var z = 0; z < width; z++) {
-          this.placeBlock(x, 0, z);
+          if (x % 2 === 0 && z % 2 === 0 || x % 2 === 1 && z % 2 === 1) {
+            this.placeBlock(this.createBlock(0x44ff55), x, 0, z);
+          } else {
+            this.placeBlock(this.createBlock(0x33ee44), x, 0, z);
+          }
         }
       }
     }

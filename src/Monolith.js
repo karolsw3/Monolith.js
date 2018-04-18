@@ -15,25 +15,54 @@ class Monolith {
   }
 
   init () {
-    this.scene.background = new THREE.Color('rgb(23,0,0)')
-    this.scene.add(new THREE.AmbientLight(0x444444))
-    this.scene.add(new THREE.AxesHelper(40))
+    this.scene.background = new THREE.Color('rgb(53,12,63)')
+    this.scene.add(new THREE.AxesHelper(60))
     this.camera.position.set(this.settings.blockWidth, this.settings.blockWidth, this.settings.blockWidth)
     this.camera.lookAt(this.scene.position)
-
-    var light = new THREE.AmbientLight(0x404040)
-    this.scene.add(light)
-
+    this._addLights()
+    this._addGrid()
     this.renderer.setSize(window.innerWidth, window.innerHeight)
+    this.renderer.shadowMapEnabled = true
     document.body.appendChild(this.renderer.domElement)
 
     requestAnimationFrame(this._animate)
   }
 
-  placeBlock (x, y, z) {
+  _addGrid () {
+    let w = this.settings.blockWidth
+    let e = 100
+    var geometry = new THREE.PlaneBufferGeometry(w * e, w * e, w * e, w * e)
+    var material = new THREE.MeshBasicMaterial({ wireframe: true, opacity: 0.1, transparent: true })
+    var grid = new THREE.Mesh(geometry, material)
+    grid.rotation.order = 'YXZ'
+    grid.rotation.y = -Math.PI / 2
+    grid.rotation.x = -Math.PI / 2
+    this.scene.add(grid)
+  }
+
+  _addLights () {
+    this.scene.add(new THREE.AmbientLight(0x444444))
+    var spotLightTop = new THREE.SpotLight(0xaaaaaa)
+    var spotLightLeft = new THREE.SpotLight(0x444444)
+    spotLightTop.position.set(0, 120, 0)
+    spotLightTop.castShadow = true
+    spotLightLeft.position.set(0, 0, 120)
+    spotLightLeft.castShadow = true
+
+    this.scene.add(spotLightTop)
+    this.scene.add(spotLightLeft)
+  }
+
+  createBlock (color) {
     let w = this.settings.blockWidth
     let h = this.settings.blockHeight
-    let block = new THREE.Mesh(new THREE.CubeGeometry(w, h, w), new THREE.MeshNormalMaterial())
+    let block = new THREE.Mesh(new THREE.CubeGeometry(w, h, w), new THREE.MeshLambertMaterial({color: color}))
+    return block
+  }
+
+  placeBlock (block, x, y, z) {
+    let w = this.settings.blockWidth
+    let h = this.settings.blockHeight
     block.position.x = -x * w
     block.position.y = y * h
     block.position.z = -z * w
@@ -43,7 +72,11 @@ class Monolith {
   generateFloor (length, width) {
     for (let x = 0; x < length; x++) {
       for (let z = 0; z < width; z++) {
-        this.placeBlock(x, 0, z)
+        if ((x % 2 === 0 && z % 2 === 0) || (x % 2 === 1 && z % 2 === 1)) {
+          this.placeBlock(this.createBlock(0x44ff55), x, 0, z)
+        } else {
+          this.placeBlock(this.createBlock(0x33ee44), x, 0, z)
+        }
       }
     }
   }
