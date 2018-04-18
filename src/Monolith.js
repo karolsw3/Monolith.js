@@ -3,22 +3,49 @@ import * as THREE from 'three'
 class Monolith {
   constructor (settings) {
     this.settings = settings
+
+    // Three.js
     this.scene = new THREE.Scene()
-    this.space = this._create3DArray(settings.sizeX, settings.sizeY, settings.sizeZ)
+    this.aspect = window.innerWidth / window.innerHeight
+    this.geometry = new THREE.BoxGeometry(1, 1, 1)
+    this.camera = new THREE.OrthographicCamera(-20 * this.aspect, 20 * this.aspect, 20, -20, 1, 1000)
+    this.renderer = new THREE.WebGLRenderer()
+
+    this._animate = this._animate.bind(this)
   }
 
-  // Return three dimensional array with specified width, height and depth
-  _create3DArray (sizeX, sizeY, sizeZ) {
-    let array = []
-    for (let x = 0; x < sizeX; x++) {
-      array[x] = []
-      for (let y = 0; y < sizeY; y++) {
-        array[x][y] = []
-        for (let z = 0; z < sizeZ; z++) {
-          array[x][y][z] = 0
-        }
-      }
-    }
-    return array
+  init () {
+    this.scene.background = new THREE.Color('rgb(23,0,0)')
+    this.scene.add(new THREE.AmbientLight(0x444444))
+    this.scene.add(new THREE.AxesHelper(40))
+    this.camera.position.set(this.settings.blockWidth, this.settings.blockWidth, this.settings.blockWidth)
+    this.camera.lookAt(this.scene.position)
+
+    var light = new THREE.AmbientLight(0x404040)
+    this.scene.add(light)
+
+    this.renderer.setSize(window.innerWidth, window.innerHeight)
+    document.body.appendChild(this.renderer.domElement)
+
+    requestAnimationFrame(this._animate)
+  }
+
+  placeBlock (x, y, z) {
+    let w = this.settings.blockWidth
+    let h = this.settings.blockHeight
+    let block = new THREE.Mesh(new THREE.CubeGeometry(w, h, w), new THREE.MeshNormalMaterial())
+    block.position.x = x * w
+    block.position.y = y * h
+    block.position.z = z * w
+    this.scene.add(block)
+  }
+
+  _animate () {
+    this._render()
+    requestAnimationFrame(this._animate)
+  }
+
+  _render () {
+    this.renderer.render(this.scene, this.camera)
   }
 }

@@ -45411,27 +45411,55 @@ var Monolith = function () {
     classCallCheck(this, Monolith);
 
     this.settings = settings;
+
+    // Three.js
     this.scene = new Scene();
-    this.space = this._create3DArray(settings.sizeX, settings.sizeY, settings.sizeZ);
+    this.aspect = window.innerWidth / window.innerHeight;
+    this.geometry = new BoxGeometry(1, 1, 1);
+    this.camera = new OrthographicCamera(-20 * this.aspect, 20 * this.aspect, 20, -20, 1, 1000);
+    this.renderer = new WebGLRenderer();
+
+    this._animate = this._animate.bind(this);
   }
 
-  // Return three dimensional array with specified width, height and depth
-
-
   createClass(Monolith, [{
-    key: '_create3DArray',
-    value: function _create3DArray(sizeX, sizeY, sizeZ) {
-      var array = [];
-      for (var x = 0; x < sizeX; x++) {
-        array[x] = [];
-        for (var y = 0; y < sizeY; y++) {
-          array[x][y] = [];
-          for (var z = 0; z < sizeZ; z++) {
-            array[x][y][z] = 0;
-          }
-        }
-      }
-      return array;
+    key: 'init',
+    value: function init() {
+      this.scene.background = new Color('rgb(23,0,0)');
+      this.scene.add(new AmbientLight(0x444444));
+      this.scene.add(new AxesHelper(40));
+      this.camera.position.set(this.settings.blockWidth, this.settings.blockWidth, this.settings.blockWidth);
+      this.camera.lookAt(this.scene.position);
+
+      var light = new AmbientLight(0x404040);
+      this.scene.add(light);
+
+      this.renderer.setSize(window.innerWidth, window.innerHeight);
+      document.body.appendChild(this.renderer.domElement);
+
+      requestAnimationFrame(this._animate);
+    }
+  }, {
+    key: 'placeBlock',
+    value: function placeBlock(x, y, z) {
+      var w = this.settings.blockWidth;
+      var h = this.settings.blockHeight;
+      var block = new Mesh(new BoxGeometry(w, h, w), new MeshNormalMaterial());
+      block.position.x = x * w;
+      block.position.y = y * h;
+      block.position.z = z * w;
+      this.scene.add(block);
+    }
+  }, {
+    key: '_animate',
+    value: function _animate() {
+      this._render();
+      requestAnimationFrame(this._animate);
+    }
+  }, {
+    key: '_render',
+    value: function _render() {
+      this.renderer.render(this.scene, this.camera);
     }
   }]);
   return Monolith;
