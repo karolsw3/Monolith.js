@@ -34,10 +34,18 @@ class Monolith {
     let w = this.settings.blockWidth
     let h = this.settings.blockHeight
     let block = new THREE.Mesh(new THREE.CubeGeometry(w, h, w), new THREE.MeshNormalMaterial())
-    block.position.x = x * w
+    block.position.x = -x * w
     block.position.y = y * h
-    block.position.z = z * w
+    block.position.z = -z * w
     this.scene.add(block)
+  }
+
+  generateFloor (length, width) {
+    for (let x = 0; x < length; x++) {
+      for (let z = 0; z < width; z++) {
+        this.placeBlock(x, 0, z)
+      }
+    }
   }
 
   _animate () {

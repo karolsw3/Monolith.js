@@ -7,6 +7,4 @@ var monolith = new Monolith({
 })
 
 monolith.init()
-monolith.placeBlock(0, 0, 0)
-monolith.placeBlock(1, 0, 0)
-monolith.placeBlock(0, 1, 0)
+monolith.generateFloor(5, 5)

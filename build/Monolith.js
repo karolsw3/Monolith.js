@@ -45445,10 +45445,19 @@ var Monolith = function () {
       var w = this.settings.blockWidth;
       var h = this.settings.blockHeight;
       var block = new Mesh(new BoxGeometry(w, h, w), new MeshNormalMaterial());
-      block.position.x = x * w;
+      block.position.x = -x * w;
       block.position.y = y * h;
-      block.position.z = z * w;
+      block.position.z = -z * w;
       this.scene.add(block);
+    }
+  }, {
+    key: 'generateFloor',
+    value: function generateFloor(length, width) {
+      for (var x = 0; x < length; x++) {
+        for (var z = 0; z < width; z++) {
+          this.placeBlock(x, 0, z);
+        }
+      }
     }
   }, {
     key: '_animate',
