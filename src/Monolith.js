@@ -11,6 +11,7 @@ class Monolith {
     this.geometry = new THREE.BoxGeometry(1, 1, 1)
     this.camera = new THREE.OrthographicCamera(-20 * this.aspect, 20 * this.aspect, 20, -20, 1, 1000)
     this.renderer = new THREE.WebGLRenderer()
+    this.raycaster = new THREE.Raycaster()
 
     this._animate = this._animate.bind(this)
   }
@@ -23,7 +24,7 @@ class Monolith {
     this._addLights()
     this._addGrid()
     this.renderer.setSize(window.innerWidth, window.innerHeight)
-    this.renderer.shadowMapEnabled = true
+    this.renderer.shadowMap.enabled = true
     document.body.appendChild(this.renderer.domElement)
 
     requestAnimationFrame(this._animate)
@@ -62,14 +63,14 @@ class Monolith {
     return block
   }
 
-  placeObject (block, x, y, z) {
+  placeObject (object, x, y, z) {
     let w = this.settings.blockWidth
     let h = this.settings.blockHeight
-    block.position.x = -x * w
-    block.position.y = y * h
-    block.position.z = -z * w
-    this.objects.push(block)
-    this.scene.add(block)
+    object.position.x = -x * w
+    object.position.y = y * h
+    object.position.z = -z * w
+    this.objects.push(object)
+    this.scene.add(object)
   }
 
   generateFloor (length, width) {
@@ -85,6 +86,25 @@ class Monolith {
     this.camera.position.y = this.settings.blockWidth * (length / 2)
   }
 
+  addKeyboardControls (object) {
+    window.addEventListener('keydown', (event) => {
+      var keyCode = event.keyCode
+      switch (keyCode) {
+        case 68: // d
+          object.position.z -= object.geometry.parameters.width
+          break
+        case 83: // s
+          object.position.x--
+          break
+        case 65: // a
+          object.position.z += object.geometry.parameters.width
+          break
+        case 87: // w
+          break
+      }
+    }, false)
+  }
+
   _animate () {
     this._render()
     this._makeObjectsFall(this.settings.gravity)
@@ -92,16 +112,16 @@ class Monolith {
   }
 
   // Check if specified object collides vertically with any other object
-  _checkObjectCollision (object) {
-    let objectXcenter = object.position.x + object.geometry.parameters.width / 2
-    let objectZcenter = object.position.z + object.geometry.parameters.depth / 2
-    for (let i = 0; i < this.objects.length; i++) {
-      if (object.position.y > this.objects[i].position.y && object.position.y <= this.objects[i].position.y + this.objects[i].geometry.parameters.height &&
-          (objectXcenter > this.objects[i].position.x && objectZcenter <= this.objects[i].position.x + this.objects[i].geometry.parameters.width) &&
-          (objectZcenter > this.objects[i].position.z && objectZcenter <= this.objects[i].position.z + this.objects[i].geometry.parameters.depth)
-      ) {
-        return true
-      }
+  _checkVerticalObjectCollision (object) {
+    var originPoint = object.position.clone()
+    var localVertex = object.geometry.vertices[3].clone()
+    var globalVertex = localVertex.applyMatrix4(object.matrix)
+    var directionVector = globalVertex.sub(object.position)
+
+    var ray = new THREE.Raycaster(originPoint, directionVector.clone().normalize())
+    var collisionResults = ray.intersectObjects(this.objects)
+    if (collisionResults.length > 0 && collisionResults[0].distance < directionVector.length()) {
+      return true
     }
     return false
   }
@@ -112,12 +132,14 @@ class Monolith {
    */
   _makeObjectsFall (acceleration) {
     for (let i = 0; i < this.objects.length; i++) {
-      if (this._checkObjectCollision(this.objects[i]) === false && this.objects[i].position.y > 0) {
-        this.objects[i].velocity += acceleration
-        this.objects[i].position.y -= this.objects[i].velocity
-      } else {
-        this.objects[i].position.y = Math.ceil(this.objects[i].position.y)
-        this.objects[i].velocity = 0
+      if (this.objects[i].position.y > 0) {
+        if (this._checkVerticalObjectCollision(this.objects[i]) === false) {
+          this.objects[i].velocity += acceleration
+          this.objects[i].position.y -= this.objects[i].velocity
+        } else {
+          this.objects[i].position.y = Math.ceil(this.objects[i].position.y)
+          this.objects[i].velocity = 0
+        }
       }
     }
   }

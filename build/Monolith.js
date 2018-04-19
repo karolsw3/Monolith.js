@@ -45419,6 +45419,7 @@ var Monolith = function () {
     this.geometry = new BoxGeometry(1, 1, 1);
     this.camera = new OrthographicCamera(-20 * this.aspect, 20 * this.aspect, 20, -20, 1, 1000);
     this.renderer = new WebGLRenderer();
+    this.raycaster = new Raycaster();
 
     this._animate = this._animate.bind(this);
   }
@@ -45433,7 +45434,7 @@ var Monolith = function () {
       this._addLights();
       this._addGrid();
       this.renderer.setSize(window.innerWidth, window.innerHeight);
-      this.renderer.shadowMapEnabled = true;
+      this.renderer.shadowMap.enabled = true;
       document.body.appendChild(this.renderer.domElement);
 
       requestAnimationFrame(this._animate);
@@ -45476,14 +45477,14 @@ var Monolith = function () {
     }
   }, {
     key: 'placeObject',
-    value: function placeObject(block, x, y, z) {
+    value: function placeObject(object, x, y, z) {
       var w = this.settings.blockWidth;
       var h = this.settings.blockHeight;
-      block.position.x = -x * w;
-      block.position.y = y * h;
-      block.position.z = -z * w;
-      this.objects.push(block);
-      this.scene.add(block);
+      object.position.x = -x * w;
+      object.position.y = y * h;
+      object.position.z = -z * w;
+      this.objects.push(object);
+      this.scene.add(object);
     }
   }, {
     key: 'generateFloor',
@@ -45500,6 +45501,30 @@ var Monolith = function () {
       this.camera.position.y = this.settings.blockWidth * (length / 2);
     }
   }, {
+    key: 'addKeyboardControls',
+    value: function addKeyboardControls(object) {
+      window.addEventListener('keydown', function (event) {
+        var keyCode = event.keyCode;
+        switch (keyCode) {
+          case 68:
+            // d
+            object.position.z -= object.geometry.parameters.width;
+            break;
+          case 83:
+            // s
+            object.position.x--;
+            break;
+          case 65:
+            // a
+            object.position.z += object.geometry.parameters.width;
+            break;
+          case 87:
+            // w
+            break;
+        }
+      }, false);
+    }
+  }, {
     key: '_animate',
     value: function _animate() {
       this._render();
@@ -45512,12 +45537,15 @@ var Monolith = function () {
   }, {
     key: '_checkObjectCollision',
     value: function _checkObjectCollision(object) {
-      var objectXcenter = object.position.x + object.geometry.parameters.width / 2;
-      var objectZcenter = object.position.z + object.geometry.parameters.depth / 2;
-      for (var i = 0; i < this.objects.length; i++) {
-        if (object.position.y > this.objects[i].position.y && object.position.y <= this.objects[i].position.y + this.objects[i].geometry.parameters.height && objectXcenter > this.objects[i].position.x && objectZcenter <= this.objects[i].position.x + this.objects[i].geometry.parameters.width && objectZcenter > this.objects[i].position.z && objectZcenter <= this.objects[i].position.z + this.objects[i].geometry.parameters.depth) {
-          return true;
-        }
+      var originPoint = object.position.clone();
+      var localVertex = object.geometry.vertices[3].clone();
+      var globalVertex = localVertex.applyMatrix4(object.matrix);
+      var directionVector = globalVertex.sub(object.position);
+
+      var ray = new Raycaster(originPoint, directionVector.clone().normalize());
+      var collisionResults = ray.intersectObjects(this.objects);
+      if (collisionResults.length > 0 && collisionResults[0].distance < directionVector.length()) {
+        return true;
       }
       return false;
     }
@@ -45531,12 +45559,14 @@ var Monolith = function () {
     key: '_makeObjectsFall',
     value: function _makeObjectsFall(acceleration) {
       for (var i = 0; i < this.objects.length; i++) {
-        if (this._checkObjectCollision(this.objects[i]) === false && this.objects[i].position.y > 0) {
-          this.objects[i].velocity += acceleration;
-          this.objects[i].position.y -= this.objects[i].velocity;
-        } else {
-          this.objects[i].position.y = Math.ceil(this.objects[i].position.y);
-          this.objects[i].velocity = 0;
+        if (this.objects[i].position.y > 0) {
+          if (this._checkObjectCollision(this.objects[i]) === false) {
+            this.objects[i].velocity += acceleration;
+            this.objects[i].position.y -= this.objects[i].velocity;
+          } else {
+            this.objects[i].position.y = Math.ceil(this.objects[i].position.y);
+            this.objects[i].velocity = 0;
+          }
         }
       }
     }
