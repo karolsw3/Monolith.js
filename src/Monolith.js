@@ -1,4 +1,3 @@
-import * as THREE from 'three'
 
 class Monolith {
   constructor (settings) {
