@@ -86,20 +86,21 @@ class Monolith {
     this.camera.position.y = this.settings.blockWidth * (length / 2)
   }
 
-  addKeyboardControls (object) {
+  attachQEADControls (object) {
     window.addEventListener('keydown', (event) => {
       var keyCode = event.keyCode
       switch (keyCode) {
         case 68: // d
-          object.position.z -= object.geometry.parameters.width
+          object.position.x += object.geometry.parameters.width
           break
-        case 83: // s
-          object.position.x--
+        case 69: // e
+          object.position.z -= object.geometry.parameters.depth
           break
         case 65: // a
-          object.position.z += object.geometry.parameters.width
+          object.position.z += object.geometry.parameters.depth
           break
-        case 87: // w
+        case 81: // q
+          object.position.x -= object.geometry.parameters.width
           break
       }
     }, false)

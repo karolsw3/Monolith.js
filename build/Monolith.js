@@ -45501,25 +45501,26 @@ var Monolith = function () {
       this.camera.position.y = this.settings.blockWidth * (length / 2);
     }
   }, {
-    key: 'addKeyboardControls',
-    value: function addKeyboardControls(object) {
+    key: 'attachQEADControls',
+    value: function attachQEADControls(object) {
       window.addEventListener('keydown', function (event) {
         var keyCode = event.keyCode;
         switch (keyCode) {
           case 68:
             // d
-            object.position.z -= object.geometry.parameters.width;
+            object.position.x += object.geometry.parameters.width;
             break;
-          case 83:
-            // s
-            object.position.x--;
+          case 69:
+            // e
+            object.position.z -= object.geometry.parameters.depth;
             break;
           case 65:
             // a
-            object.position.z += object.geometry.parameters.width;
+            object.position.z += object.geometry.parameters.depth;
             break;
-          case 87:
-            // w
+          case 81:
+            // q
+            object.position.x -= object.geometry.parameters.width;
             break;
         }
       }, false);
@@ -45535,8 +45536,8 @@ var Monolith = function () {
     // Check if specified object collides vertically with any other object
 
   }, {
-    key: '_checkObjectCollision',
-    value: function _checkObjectCollision(object) {
+    key: '_checkVerticalObjectCollision',
+    value: function _checkVerticalObjectCollision(object) {
       var originPoint = object.position.clone();
       var localVertex = object.geometry.vertices[3].clone();
       var globalVertex = localVertex.applyMatrix4(object.matrix);
@@ -45560,7 +45561,7 @@ var Monolith = function () {
     value: function _makeObjectsFall(acceleration) {
       for (var i = 0; i < this.objects.length; i++) {
         if (this.objects[i].position.y > 0) {
-          if (this._checkObjectCollision(this.objects[i]) === false) {
+          if (this._checkVerticalObjectCollision(this.objects[i]) === false) {
             this.objects[i].velocity += acceleration;
             this.objects[i].position.y -= this.objects[i].velocity;
           } else {

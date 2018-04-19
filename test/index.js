@@ -11,5 +11,5 @@ monolith.placeObject(monolith.createBlock(0x44ffff), 4, 7, 5)
 monolith.placeObject(monolith.createBlock(0xffff22), 4, 14, 5)
 
 let player = monolith.createBlock(0x00033)
-monolith.addKeyboardControls(player)
+monolith.attachQEADControls(player)
 monolith.placeObject(player, 7, 32, 8)
