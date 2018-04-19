@@ -45411,6 +45411,7 @@ var Monolith = function () {
     classCallCheck(this, Monolith);
 
     this.settings = settings;
+    this.objects = [];
 
     // Three.js
     this.scene = new Scene();
@@ -45470,6 +45471,7 @@ var Monolith = function () {
       var w = this.settings.blockWidth;
       var h = this.settings.blockHeight;
       var block = new Mesh(new BoxGeometry(w, h, w), new MeshLambertMaterial({ color: color }));
+      block.velocity = 0;
       return block;
     }
   }, {
@@ -45480,6 +45482,7 @@ var Monolith = function () {
       block.position.x = -x * w;
       block.position.y = y * h;
       block.position.z = -z * w;
+      this.objects.push(block);
       this.scene.add(block);
     }
   }, {
@@ -45500,7 +45503,42 @@ var Monolith = function () {
     key: '_animate',
     value: function _animate() {
       this._render();
+      this._makeObjectsFall(this.settings.gravity);
       requestAnimationFrame(this._animate);
+    }
+
+    // Check if specified object collides vertically with any other object
+
+  }, {
+    key: '_checkObjectCollision',
+    value: function _checkObjectCollision(object) {
+      var objectXcenter = object.position.x + object.geometry.parameters.width / 2;
+      var objectZcenter = object.position.z + object.geometry.parameters.depth / 2;
+      for (var i = 0; i < this.objects.length; i++) {
+        if (object.position.y > this.objects[i].position.y && object.position.y <= this.objects[i].position.y + this.objects[i].geometry.parameters.height && objectXcenter > this.objects[i].position.x && objectZcenter <= this.objects[i].position.x + this.objects[i].geometry.parameters.width && objectZcenter > this.objects[i].position.z && objectZcenter <= this.objects[i].position.z + this.objects[i].geometry.parameters.depth) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    /**
+     * If objects are not vertically colliding with other objects - make them fall
+     * The objects will not fall beneath the ground position (y = 0)
+     */
+
+  }, {
+    key: '_makeObjectsFall',
+    value: function _makeObjectsFall(acceleration) {
+      for (var i = 0; i < this.objects.length; i++) {
+        if (this._checkObjectCollision(this.objects[i]) === false && this.objects[i].position.y > 0) {
+          this.objects[i].velocity += acceleration;
+          this.objects[i].position.y -= this.objects[i].velocity;
+        } else {
+          this.objects[i].position.y = Math.ceil(this.objects[i].position.y);
+          this.objects[i].velocity = 0;
+        }
+      }
     }
   }, {
     key: '_render',

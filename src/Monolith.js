@@ -3,6 +3,7 @@ import * as THREE from 'three'
 class Monolith {
   constructor (settings) {
     this.settings = settings
+    this.objects = []
 
     // Three.js
     this.scene = new THREE.Scene()
@@ -57,6 +58,7 @@ class Monolith {
     let w = this.settings.blockWidth
     let h = this.settings.blockHeight
     let block = new THREE.Mesh(new THREE.CubeGeometry(w, h, w), new THREE.MeshLambertMaterial({color: color}))
+    block.velocity = 0
     return block
   }
 
@@ -66,6 +68,7 @@ class Monolith {
     block.position.x = -x * w
     block.position.y = y * h
     block.position.z = -z * w
+    this.objects.push(block)
     this.scene.add(block)
   }
 
@@ -84,7 +87,39 @@ class Monolith {
 
   _animate () {
     this._render()
+    this._makeObjectsFall(this.settings.gravity)
     requestAnimationFrame(this._animate)
+  }
+
+  // Check if specified object collides vertically with any other object
+  _checkObjectCollision (object) {
+    let objectXcenter = object.position.x + object.geometry.parameters.width / 2
+    let objectZcenter = object.position.z + object.geometry.parameters.depth / 2
+    for (let i = 0; i < this.objects.length; i++) {
+      if (object.position.y > this.objects[i].position.y && object.position.y <= this.objects[i].position.y + this.objects[i].geometry.parameters.height &&
+          (objectXcenter > this.objects[i].position.x && objectZcenter <= this.objects[i].position.x + this.objects[i].geometry.parameters.width) &&
+          (objectZcenter > this.objects[i].position.z && objectZcenter <= this.objects[i].position.z + this.objects[i].geometry.parameters.depth)
+      ) {
+        return true
+      }
+    }
+    return false
+  }
+
+  /**
+   * If objects are not vertically colliding with other objects - make them fall
+   * The objects will not fall beneath the ground position (y = 0)
+   */
+  _makeObjectsFall (acceleration) {
+    for (let i = 0; i < this.objects.length; i++) {
+      if (this._checkObjectCollision(this.objects[i]) === false && this.objects[i].position.y > 0) {
+        this.objects[i].velocity += acceleration
+        this.objects[i].position.y -= this.objects[i].velocity
+      } else {
+        this.objects[i].position.y = Math.ceil(this.objects[i].position.y)
+        this.objects[i].velocity = 0
+      }
+    }
   }
 
   _render () {
