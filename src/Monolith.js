@@ -95,18 +95,24 @@ class Monolith {
           switch (direction) {
             case 'right':
               object.position.x += (0.01 * object.geometry.parameters.width)
+              if (this._checkHorizontalObjectCollision(object)) object.position.x -= (0.01 * object.geometry.parameters.depth)
               break
             case 'down':
               object.position.z += (0.01 * object.geometry.parameters.width)
+              if (this._checkHorizontalObjectCollision(object)) object.position.z -= (0.01 * object.geometry.parameters.depth)
               break
             case 'left':
               object.position.x -= (0.01 * object.geometry.parameters.depth)
+              if (this._checkHorizontalObjectCollision(object)) object.position.x += (0.01 * object.geometry.parameters.depth)
               break
             case 'up':
               object.position.z -= (0.01 * object.geometry.parameters.depth)
+              if (this._checkHorizontalObjectCollision(object)) object.position.z += (0.01 * object.geometry.parameters.depth)
           }
         }, i * 1)
       }
+      object.position.x = Math.round(object.position.x)
+      object.position.z = Math.round(object.position.z)
     }
   }
 
@@ -129,6 +135,20 @@ class Monolith {
       return true
     }
     return false
+  }
+
+  _collisonXZ (o1, o2) {
+    if (Math.abs(o1.position.x - o2.position.x) > (o1.geometry.parameters.width - 0.1 + o2.geometry.parameters.width) / 2) return false
+    if (Math.abs(o1.position.z - o2.position.z) > (o1.geometry.parameters.depth - 0.1 + o2.geometry.parameters.depth) / 2) return false
+    return true
+  }
+
+  _checkHorizontalObjectCollision (object) {
+    let collisions = 0
+    for (let i = 0; i < this.objects.length; i++) {
+      if (this._collisonXZ(object, this.objects[i])) collisions++
+    }
+    return collisions > 3
   }
 
   /**

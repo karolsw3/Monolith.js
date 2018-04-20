@@ -137,24 +137,32 @@ var Monolith = function () {
   }, {
     key: 'attachMovementControls',
     value: function attachMovementControls(object) {
+      var _this = this;
+
       object.move = function (direction) {
         for (var i = 0; i < 100; i++) {
           setTimeout(function () {
             switch (direction) {
               case 'right':
                 object.position.x += 0.01 * object.geometry.parameters.width;
+                if (_this._checkHorizontalObjectCollision(object)) object.position.x -= 0.01 * object.geometry.parameters.depth;
                 break;
               case 'down':
                 object.position.z += 0.01 * object.geometry.parameters.width;
+                if (_this._checkHorizontalObjectCollision(object)) object.position.z -= 0.01 * object.geometry.parameters.depth;
                 break;
               case 'left':
                 object.position.x -= 0.01 * object.geometry.parameters.depth;
+                if (_this._checkHorizontalObjectCollision(object)) object.position.x += 0.01 * object.geometry.parameters.depth;
                 break;
               case 'up':
                 object.position.z -= 0.01 * object.geometry.parameters.depth;
+                if (_this._checkHorizontalObjectCollision(object)) object.position.z += 0.01 * object.geometry.parameters.depth;
             }
           }, i * 1);
         }
+        object.position.x = Math.round(object.position.x);
+        object.position.z = Math.round(object.position.z);
       };
     }
   }, {
@@ -181,6 +189,22 @@ var Monolith = function () {
         return true;
       }
       return false;
+    }
+  }, {
+    key: '_collisonXZ',
+    value: function _collisonXZ(o1, o2) {
+      if (Math.abs(o1.position.x - o2.position.x) > (o1.geometry.parameters.width - 0.1 + o2.geometry.parameters.width) / 2) return false;
+      if (Math.abs(o1.position.z - o2.position.z) > (o1.geometry.parameters.depth - 0.1 + o2.geometry.parameters.depth) / 2) return false;
+      return true;
+    }
+  }, {
+    key: '_checkHorizontalObjectCollision',
+    value: function _checkHorizontalObjectCollision(object) {
+      var collisions = 0;
+      for (var i = 0; i < this.objects.length; i++) {
+        if (this._collisonXZ(object, this.objects[i])) collisions++;
+      }
+      return collisions > 3;
     }
 
     /**
