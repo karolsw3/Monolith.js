@@ -1,3 +1,4 @@
+import ObjectMethods from './modules/ObjectMethods.js'
 
 class Monolith {
   constructor (settings) {
@@ -59,6 +60,8 @@ class Monolith {
     let h = this.settings.blockHeight
     let block = new THREE.Mesh(new THREE.CubeGeometry(w, h, w), new THREE.MeshLambertMaterial({color: color}))
     block.velocity = 0
+    let methods = new ObjectMethods()
+    block.methods = methods
     return block
   }
 
@@ -85,24 +88,26 @@ class Monolith {
     this.camera.position.y = this.settings.blockWidth * (length / 2)
   }
 
-  attachQEADControls (object) {
-    window.addEventListener('keydown', (event) => {
-      var keyCode = event.keyCode
-      switch (keyCode) {
-        case 68: // d
-          object.position.x += object.geometry.parameters.width
-          break
-        case 69: // e
-          object.position.z -= object.geometry.parameters.depth
-          break
-        case 65: // a
-          object.position.z += object.geometry.parameters.depth
-          break
-        case 81: // q
-          object.position.x -= object.geometry.parameters.width
-          break
+  attachMovementControls (object) {
+    object.move = (direction) => {
+      for (let i = 0; i < 100; i++) {
+        setTimeout(() => {
+          switch (direction) {
+            case 'right':
+              object.position.x += (0.01 * object.geometry.parameters.width)
+              break
+            case 'down':
+              object.position.z += (0.01 * object.geometry.parameters.width)
+              break
+            case 'left':
+              object.position.x -= (0.01 * object.geometry.parameters.depth)
+              break
+            case 'up':
+              object.position.z -= (0.01 * object.geometry.parameters.depth)
+          }
+        }, i * 1)
       }
-    }, false)
+    }
   }
 
   _animate () {
