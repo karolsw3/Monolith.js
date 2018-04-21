@@ -24,20 +24,6 @@ var createClass = function () {
   };
 }();
 
-var ObjectMethods = function () {
-  function ObjectMethods() {
-    classCallCheck(this, ObjectMethods);
-  }
-
-  createClass(ObjectMethods, [{
-    key: "moveLeft",
-    value: function moveLeft() {
-      this.position.x += 5;
-    }
-  }]);
-  return ObjectMethods;
-}();
-
 var Monolith = function () {
   function Monolith(settings) {
     classCallCheck(this, Monolith);
@@ -106,8 +92,7 @@ var Monolith = function () {
       var h = this.settings.blockHeight;
       var block = new THREE.Mesh(new THREE.CubeGeometry(w, h, w), new THREE.MeshLambertMaterial({ color: color }));
       block.velocity = 0;
-      var methods = new ObjectMethods();
-      block.methods = methods;
+      block.inMotion = false;
       return block;
     }
   }, {
@@ -141,36 +126,48 @@ var Monolith = function () {
       var _this = this;
 
       object.move = function (direction) {
-        for (var i = 0; i < 100; i++) {
+        if (!object.inMotion) {
           switch (direction) {
             case 'right':
-              if (!_this._checkCollision(object, 'right')) {
-                setTimeout(function () {
-                  object.position.x += 0.01 * object.geometry.parameters.width;
-                }, i * 1);
+              if (!_this._checkCollision(object, 'right') && !object.inMotion) {
+                for (var i = 0; i < 40; i++) {
+                  setTimeout(function () {
+                    object.position.x += 0.025 * object.geometry.parameters.width;
+                  }, i * 1);
+                }
               }
               break;
-            case 'down':
-              if (!_this._checkCollision(object, 'front')) {
-                setTimeout(function () {
-                  object.position.z += 0.01 * object.geometry.parameters.depth;
-                }, i * 1);
+            case 'backward':
+              if (!_this._checkCollision(object, 'front') && !object.inMotion) {
+                for (var _i = 0; _i < 40; _i++) {
+                  setTimeout(function () {
+                    object.position.z += 0.025 * object.geometry.parameters.depth;
+                  }, _i * 1);
+                }
               }
               break;
             case 'left':
-              if (!_this._checkCollision(object, 'left')) {
-                setTimeout(function () {
-                  object.position.x -= 0.01 * object.geometry.parameters.width;
-                }, i * 1);
+              if (!_this._checkCollision(object, 'left') && !object.inMotion) {
+                for (var _i2 = 0; _i2 < 40; _i2++) {
+                  setTimeout(function () {
+                    object.position.x -= 0.025 * object.geometry.parameters.width;
+                  }, _i2 * 1);
+                }
               }
               break;
-            case 'up':
-              if (!_this._checkCollision(object, 'back')) {
-                setTimeout(function () {
-                  object.position.z -= 0.01 * object.geometry.parameters.depth;
-                }, i * 1);
+            case 'forward':
+              if (!_this._checkCollision(object, 'back') && !object.inMotion) {
+                for (var _i3 = 0; _i3 < 40; _i3++) {
+                  setTimeout(function () {
+                    object.position.z -= 0.025 * object.geometry.parameters.depth;
+                  }, _i3 * 1);
+                }
               }
           }
+          object.inMotion = true;
+          setTimeout(function () {
+            object.inMotion = false;
+          }, 40 * 2);
         }
         object.position.x = Math.round(object.position.x);
         object.position.z = Math.round(object.position.z);
@@ -187,7 +184,7 @@ var Monolith = function () {
     key: '_checkCollision',
     value: function _checkCollision(object, direction) {
       var objectX = -Math.round(object.position.x / object.geometry.parameters.width);
-      var objectY = Math.round(object.position.y / object.geometry.parameters.height);
+      var objectY = Math.ceil(object.position.y / object.geometry.parameters.height);
       var objectZ = -Math.round(object.position.z / object.geometry.parameters.depth);
       switch (direction) {
         case 'bottom':

@@ -1,4 +1,3 @@
-import ObjectMethods from './modules/ObjectMethods.js'
 
 class Monolith {
   constructor (settings) {
@@ -61,8 +60,7 @@ class Monolith {
     let h = this.settings.blockHeight
     let block = new THREE.Mesh(new THREE.CubeGeometry(w, h, w), new THREE.MeshLambertMaterial({color: color}))
     block.velocity = 0
-    let methods = new ObjectMethods()
-    block.methods = methods
+    block.inMotion = false
     return block
   }
 
@@ -91,36 +89,48 @@ class Monolith {
 
   attachMovementControls (object) {
     object.move = (direction) => {
-      for (let i = 0; i < 100; i++) {
+      if (!object.inMotion) {
         switch (direction) {
           case 'right':
-            if (!this._checkCollision(object, 'right')) {
-              setTimeout(() => {
-                object.position.x += (0.01 * object.geometry.parameters.width)
-              }, i * 1)
+            if (!this._checkCollision(object, 'right') && !object.inMotion) {
+              for (let i = 0; i < 40; i++) {
+                setTimeout(() => {
+                  object.position.x += (0.025 * object.geometry.parameters.width)
+                }, i * 1)
+              }
             }
             break
-          case 'down':
-            if (!this._checkCollision(object, 'front')) {
-              setTimeout(() => {
-                object.position.z += (0.01 * object.geometry.parameters.depth)
-              }, i * 1)
+          case 'backward':
+            if (!this._checkCollision(object, 'front') && !object.inMotion) {
+              for (let i = 0; i < 40; i++) {
+                setTimeout(() => {
+                  object.position.z += (0.025 * object.geometry.parameters.depth)
+                }, i * 1)
+              }
             }
             break
           case 'left':
-            if (!this._checkCollision(object, 'left')) {
-              setTimeout(() => {
-                object.position.x -= (0.01 * object.geometry.parameters.width)
-              }, i * 1)
+            if (!this._checkCollision(object, 'left') && !object.inMotion) {
+              for (let i = 0; i < 40; i++) {
+                setTimeout(() => {
+                  object.position.x -= (0.025 * object.geometry.parameters.width)
+                }, i * 1)
+              }
             }
             break
-          case 'up':
-            if (!this._checkCollision(object, 'back')) {
-              setTimeout(() => {
-                object.position.z -= (0.01 * object.geometry.parameters.depth)
-              }, i * 1)
+          case 'forward':
+            if (!this._checkCollision(object, 'back') && !object.inMotion) {
+              for (let i = 0; i < 40; i++) {
+                setTimeout(() => {
+                  object.position.z -= (0.025 * object.geometry.parameters.depth)
+                }, i * 1)
+              }
             }
         }
+        object.inMotion = true
+        setTimeout(() => {
+          object.inMotion = false
+        }, 40 * 2)
       }
       object.position.x = Math.round(object.position.x)
       object.position.z = Math.round(object.position.z)
@@ -135,7 +145,7 @@ class Monolith {
 
   _checkCollision (object, direction) {
     var objectX = -Math.round(object.position.x / object.geometry.parameters.width)
-    var objectY = Math.round(object.position.y / object.geometry.parameters.height)
+    var objectY = Math.ceil(object.position.y / object.geometry.parameters.height)
     var objectZ = -Math.round(object.position.z / object.geometry.parameters.depth)
     switch (direction) {
       case 'bottom':

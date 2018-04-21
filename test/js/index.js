@@ -25,10 +25,10 @@ window.addEventListener('keydown', (event) => {
       player.move('right')
       break
     case 69: // e
-      player.move('up')
+      player.move('forward')
       break
     case 65: // a
-      player.move('down')
+      player.move('backward')
       break
     case 81: // q
       player.move('left')
