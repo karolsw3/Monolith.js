@@ -44,6 +44,7 @@ var Monolith = function () {
 
     this.settings = settings;
     this.objects = [];
+    this.stableObjects = this._create3DArray(this.settings.sizeX, this.settings.sizeY, this.settings.sizeZ);
 
     // Three.js
     this.scene = new THREE.Scene();
@@ -117,7 +118,7 @@ var Monolith = function () {
       object.position.x = -x * w;
       object.position.y = y * h;
       object.position.z = -z * w;
-      this.objects.push(object);
+      this.stableObjects[x][y][z] = object;
       this.scene.add(object);
     }
   }, {
@@ -141,25 +142,35 @@ var Monolith = function () {
 
       object.move = function (direction) {
         for (var i = 0; i < 100; i++) {
-          setTimeout(function () {
-            switch (direction) {
-              case 'right':
-                object.position.x += 0.01 * object.geometry.parameters.width;
-                if (_this._checkHorizontalObjectCollision(object)) object.position.x -= 0.01 * object.geometry.parameters.depth;
-                break;
-              case 'down':
-                object.position.z += 0.01 * object.geometry.parameters.width;
-                if (_this._checkHorizontalObjectCollision(object)) object.position.z -= 0.01 * object.geometry.parameters.depth;
-                break;
-              case 'left':
-                object.position.x -= 0.01 * object.geometry.parameters.depth;
-                if (_this._checkHorizontalObjectCollision(object)) object.position.x += 0.01 * object.geometry.parameters.depth;
-                break;
-              case 'up':
-                object.position.z -= 0.01 * object.geometry.parameters.depth;
-                if (_this._checkHorizontalObjectCollision(object)) object.position.z += 0.01 * object.geometry.parameters.depth;
-            }
-          }, i * 1);
+          switch (direction) {
+            case 'right':
+              if (!_this._checkCollision(object, 'right')) {
+                setTimeout(function () {
+                  object.position.x += 0.01 * object.geometry.parameters.width;
+                }, i * 1);
+              }
+              break;
+            case 'down':
+              if (!_this._checkCollision(object, 'front')) {
+                setTimeout(function () {
+                  object.position.z += 0.01 * object.geometry.parameters.depth;
+                }, i * 1);
+              }
+              break;
+            case 'left':
+              if (!_this._checkCollision(object, 'left')) {
+                setTimeout(function () {
+                  object.position.x -= 0.01 * object.geometry.parameters.width;
+                }, i * 1);
+              }
+              break;
+            case 'up':
+              if (!_this._checkCollision(object, 'back')) {
+                setTimeout(function () {
+                  object.position.z -= 0.01 * object.geometry.parameters.depth;
+                }, i * 1);
+              }
+          }
         }
         object.position.x = Math.round(object.position.x);
         object.position.z = Math.round(object.position.z);
@@ -172,39 +183,26 @@ var Monolith = function () {
       this._makeObjectsFall(this.settings.gravity);
       requestAnimationFrame(this._animate);
     }
-
-    // Check if specified object collides vertically with any other object
-
   }, {
-    key: '_checkVerticalObjectCollision',
-    value: function _checkVerticalObjectCollision(object) {
-      var originPoint = object.position.clone();
-      var localVertex = object.geometry.vertices[3].clone();
-      var globalVertex = localVertex.applyMatrix4(object.matrix);
-      var directionVector = globalVertex.sub(object.position);
-
-      var ray = new THREE.Raycaster(originPoint, directionVector.clone().normalize());
-      var collisionResults = ray.intersectObjects(this.objects);
-      if (collisionResults.length > 0 && collisionResults[0].distance < directionVector.length()) {
-        return true;
+    key: '_checkCollision',
+    value: function _checkCollision(object, direction) {
+      var objectX = -Math.round(object.position.x / object.geometry.parameters.width);
+      var objectY = Math.round(object.position.y / object.geometry.parameters.height);
+      var objectZ = -Math.round(object.position.z / object.geometry.parameters.depth);
+      switch (direction) {
+        case 'bottom':
+          return this.stableObjects[objectX][objectY - 1][objectZ] !== 0;
+        case 'top':
+          return this.stableObjects[objectX][objectY + 1][objectZ] !== 0;
+        case 'left':
+          return this.stableObjects[objectX + 1][objectY][objectZ] !== 0;
+        case 'right':
+          return this.stableObjects[objectX - 1][objectY][objectZ] !== 0;
+        case 'front':
+          return this.stableObjects[objectX][objectY][objectZ - 1] !== 0;
+        case 'back':
+          return this.stableObjects[objectX][objectY][objectZ + 1] !== 0;
       }
-      return false;
-    }
-  }, {
-    key: '_collisonXZ',
-    value: function _collisonXZ(o1, o2) {
-      if (Math.abs(o1.position.x - o2.position.x) > (o1.geometry.parameters.width - 0.1 + o2.geometry.parameters.width) / 2) return false;
-      if (Math.abs(o1.position.z - o2.position.z) > (o1.geometry.parameters.depth - 0.1 + o2.geometry.parameters.depth) / 2) return false;
-      return true;
-    }
-  }, {
-    key: '_checkHorizontalObjectCollision',
-    value: function _checkHorizontalObjectCollision(object) {
-      var collisions = 0;
-      for (var i = 0; i < this.objects.length; i++) {
-        if (this._collisonXZ(object, this.objects[i])) collisions++;
-      }
-      return collisions > 3;
     }
 
     /**
@@ -215,14 +213,19 @@ var Monolith = function () {
   }, {
     key: '_makeObjectsFall',
     value: function _makeObjectsFall(acceleration) {
-      for (var i = 0; i < this.objects.length; i++) {
-        if (this.objects[i].position.y > 0) {
-          if (this._checkVerticalObjectCollision(this.objects[i]) === false) {
-            this.objects[i].velocity += acceleration;
-            this.objects[i].position.y -= this.objects[i].velocity;
-          } else {
-            this.objects[i].position.y = Math.ceil(this.objects[i].position.y);
-            this.objects[i].velocity = 0;
+      // TODO
+      for (var x = 0; x < this.settings.sizeX; x++) {
+        for (var y = 1; y < this.settings.sizeY; y++) {
+          for (var z = 0; z < this.settings.sizeZ; z++) {
+            if (this.stableObjects[x][y][z] !== 0) {
+              if (!this._checkCollision(this.stableObjects[x][y][z], 'bottom')) {
+                this.stableObjects[x][y][z].velocity += acceleration;
+                this.stableObjects[x][y][z].position.y -= this.stableObjects[x][y][z].velocity;
+              } else {
+                this.stableObjects[x][y][z].position.y = Math.ceil(this.stableObjects[x][y][z].position.y);
+                this.stableObjects[x][y][z].velocity = 0;
+              }
+            }
           }
         }
       }
@@ -231,6 +234,21 @@ var Monolith = function () {
     key: '_render',
     value: function _render() {
       this.renderer.render(this.scene, this.camera);
+    }
+  }, {
+    key: '_create3DArray',
+    value: function _create3DArray(sizeX, sizeY, sizeZ) {
+      var array = [];
+      for (var x = 0; x < sizeX; x++) {
+        array[x] = [];
+        for (var y = 0; y < sizeY; y++) {
+          array[x][y] = [];
+          for (var z = 0; z < sizeZ; z++) {
+            array[x][y][z] = 0;
+          }
+        }
+      }
+      return array;
     }
   }]);
   return Monolith;
