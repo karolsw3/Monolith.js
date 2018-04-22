@@ -3,7 +3,7 @@ var monolith = new Monolith({
   sizeY: 40,
   sizeZ: 12,
   blockWidth: 3,
-  blockHeight: 3,
+  blockHeight: 1,
   gravity: 0.004
 })
 
