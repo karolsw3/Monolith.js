@@ -142,7 +142,7 @@ var Monolith = function () {
               }
               break;
             case 'backward':
-              if (!_this._checkCollision(object, 'front') && !object.inMotion) {
+              if (!_this._checkCollision(object, 'back') && !object.inMotion) {
                 for (var _i = 0; _i < 40; _i++) {
                   setTimeout(function () {
                     object.position.z += 0.025 * object.geometry.parameters.depth;
@@ -162,7 +162,7 @@ var Monolith = function () {
               }
               break;
             case 'forward':
-              if (!_this._checkCollision(object, 'back') && !object.inMotion) {
+              if (!_this._checkCollision(object, 'front') && !object.inMotion) {
                 for (var _i3 = 0; _i3 < 40; _i3++) {
                   setTimeout(function () {
                     object.position.z -= 0.025 * object.geometry.parameters.depth;
@@ -192,23 +192,35 @@ var Monolith = function () {
       this._makeObjectsFall(this.settings.gravity);
       requestAnimationFrame(this._animate);
     }
+
+    /**
+     * Check collision with specified object and its neighbour at specified direction
+     */
+
   }, {
     key: '_checkCollision',
     value: function _checkCollision(object, direction) {
       var position = this._getObjectsFixedPosition(object);
+      var neighbour = void 0;
       switch (direction) {
         case 'bottom':
-          return this.objects[position.x][position.y - 1][position.z] !== 0 && !this.objects[position.x][position.y - 1][position.z].isFalling;
+          neighbour = this.objects[position.x][position.y - 1][position.z];
+          return neighbour !== 0 && !neighbour.isFalling;
         case 'top':
-          return this.objects[position.x][position.y + 1][position.z] !== 0 && !this.objects[position.x][position.y + 1][position.z].isFalling;
+          neighbour = this.objects[position.x][position.y + 1][position.z];
+          return neighbour !== 0 && !neighbour.isFalling;
         case 'left':
-          return this.objects[position.x + 1][position.y][position.z] !== 0 && !this.objects[position.x + 1][position.y][position.z].isFalling;
+          neighbour = this.objects[position.x + 1][position.y][position.z];
+          return neighbour !== 0 && !neighbour.isFalling;
         case 'right':
-          return this.objects[position.x - 1][position.y][position.z] !== 0 && !this.objects[position.x - 1][position.y][position.z].isFalling;
+          neighbour = this.objects[position.x - 1][position.y][position.z];
+          return neighbour !== 0 && !neighbour.isFalling;
         case 'front':
-          return this.objects[position.x][position.y][position.z - 1] !== 0 && !this.objects[position.x][position.y][position.z - 1].isFalling;
+          neighbour = this.objects[position.x][position.y][position.z + 1];
+          return neighbour !== 0 && !neighbour.isFalling;
         case 'back':
-          return this.objects[position.x][position.y][position.z + 1] !== 0 && !this.objects[position.x][position.y][position.z + 1].isFalling;
+          neighbour = this.objects[position.x][position.y][position.z - 1];
+          return neighbour !== 0 && !neighbour.isFalling;
       }
     }
 
@@ -224,18 +236,20 @@ var Monolith = function () {
       for (var x = 0; x < this.settings.sizeX; x++) {
         for (var y = 1; y < this.settings.sizeY; y++) {
           for (var z = 0; z < this.settings.sizeZ; z++) {
-            if (this.objects[x][y][z] !== 0) {
-              if (!this._checkCollision(this.objects[x][y][z], 'bottom')) {
-                this.objects[x][y][z].isFalling = true;
-                this.objects[x][y][z].velocity += acceleration;
-                this.objects[x][y][z].position.y -= this.objects[x][y][z].velocity;
+            var object = this.objects[x][y][z];
+            if (object !== 0) {
+              if (!this._checkCollision(object, 'bottom')) {
+                object.isFalling = true;
+                object.velocity += acceleration;
+                object.position.y -= object.velocity;
               } else {
-                this.objects[x][y][z].position.y = Math.ceil(this.objects[x][y][z].position.y);
-                this.objects[x][y][z].velocity = 0;
-                if (this.objects[x][y][z].isFalling) {
-                  this.objects[x][y][z].isFalling = false;
-                  var position = this._getObjectsFixedPosition(this.objects[x][y][z]);
-                  this.objects[position.x][position.y][position.z] = Object.assign({}, this.objects[x][y][z]);
+                object.position.y = Math.ceil(object.position.y);
+                object.velocity = 0;
+                // If object is still falling, but the collision has occured - stop it and update its position on objects matrix
+                if (object.isFalling) {
+                  object.isFalling = false;
+                  var position = this._getObjectsFixedPosition(object);
+                  this.objects[position.x][position.y][position.z] = Object.assign({}, object);
                   this.objects[x][y][z] = 0;
                 }
               }
