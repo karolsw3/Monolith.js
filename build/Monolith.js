@@ -107,7 +107,7 @@ var Monolith = function () {
       this.camera.position.y = this.settings.blockWidth * (length / 2);
     }
 
-    // Let the camera follow an object!
+    // Let the camera follow specified object!
 
   }, {
     key: 'attachCamera',
@@ -173,7 +173,7 @@ var Monolith = function () {
               _this.objects[positionBefore.x][positionBefore.y][positionBefore.z] = 0;
 
               if (object.cameraAttached) {
-                _this.camera.position.set(object.position.x + 100, object.position.y + 100, object.position.z + 100);
+                _this.smoothlySetCameraPosition(object.position.x + 100, object.position.y + 100, object.position.z + 100);
               }
             }
           }, 40 * 2);
@@ -266,6 +266,23 @@ var Monolith = function () {
         y: objectY,
         z: objectZ
       };
+    }
+  }, {
+    key: 'smoothlySetCameraPosition',
+    value: function smoothlySetCameraPosition(x, y, z) {
+      var _this2 = this;
+
+      var translationX = x - this.camera.position.x;
+      var translationY = y - this.camera.position.y;
+      var translationZ = z - this.camera.position.z;
+      var frames = 100;
+      for (var i = 0; i < frames; i++) {
+        setTimeout(function () {
+          _this2.camera.position.x += translationX / frames;
+          _this2.camera.position.y += translationY / frames;
+          _this2.camera.position.z += translationZ / frames;
+        }, i * 1);
+      }
     }
   }, {
     key: '_render',

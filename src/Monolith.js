@@ -74,7 +74,7 @@ class Monolith {
     this.camera.position.y = this.settings.blockWidth * (length / 2)
   }
 
-  // Let the camera follow an object!
+  // Let the camera follow specified object!
   attachCamera (object) {
     object.cameraAttached = true
   }
@@ -134,7 +134,7 @@ class Monolith {
             this.objects[positionBefore.x][positionBefore.y][positionBefore.z] = 0
 
             if (object.cameraAttached) {
-              this.camera.position.set(object.position.x + 100, object.position.y + 100, object.position.z + 100)
+              this.smoothlySetCameraPosition(object.position.x + 100, object.position.y + 100, object.position.z + 100)
             }
           }
         }, 40 * 2)
@@ -217,6 +217,20 @@ class Monolith {
       x: objectX,
       y: objectY,
       z: objectZ
+    }
+  }
+
+  smoothlySetCameraPosition (x, y, z) {
+    let translationX = x - this.camera.position.x
+    let translationY = y - this.camera.position.y
+    let translationZ = z - this.camera.position.z
+    let frames = 100
+    for (let i = 0; i < frames; i++) {
+      setTimeout(() => {
+        this.camera.position.x += translationX / frames
+        this.camera.position.y += translationY / frames
+        this.camera.position.z += translationZ / frames
+      }, i * 1)
     }
   }
 
