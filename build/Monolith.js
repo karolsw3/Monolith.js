@@ -47,7 +47,6 @@ var Monolith = function () {
     key: 'init',
     value: function init() {
       this.scene.background = new THREE.Color('rgb(53,12,63)');
-      this.scene.add(new THREE.AxesHelper(60));
       this.camera.position.set(this.settings.blockWidth, this.settings.blockWidth, this.settings.blockWidth);
       this.camera.lookAt(this.scene.position);
       this._addLights();
@@ -109,17 +108,25 @@ var Monolith = function () {
     }
   }, {
     key: 'generateFloor',
-    value: function generateFloor(length, width) {
+    value: function generateFloor(y, length, width) {
       for (var x = 0; x < length; x++) {
         for (var z = 0; z < width; z++) {
           if (x % 2 === 0 && z % 2 === 0 || x % 2 === 1 && z % 2 === 1) {
-            this.placeObject(this.createBlock(0x44ff55), x, 0, z);
+            this.placeObject(this.createBlock(0x44ff55), x, y, z);
           } else {
-            this.placeObject(this.createBlock(0x33ee44), x, 0, z);
+            this.placeObject(this.createBlock(0x33ee44), x, y, z);
           }
         }
       }
       this.camera.position.y = this.settings.blockWidth * (length / 2);
+    }
+
+    // Let the camera follow the object!
+
+  }, {
+    key: 'attachCamera',
+    value: function attachCamera(object) {
+      object.cameraAttached = true;
     }
   }, {
     key: 'attachMovementControls',
@@ -178,6 +185,10 @@ var Monolith = function () {
             if (blockMoved) {
               _this.objects[positionAfter.x][positionAfter.y][positionAfter.z] = Object.assign({}, _this.objects[positionBefore.x][positionBefore.y][positionBefore.z]);
               _this.objects[positionBefore.x][positionBefore.y][positionBefore.z] = 0;
+
+              if (object.cameraAttached) {
+                _this.camera.position.set(object.position.x + 100, object.position.y + 100, object.position.z + 100);
+              }
             }
           }, 40 * 2);
         }

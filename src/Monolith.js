@@ -18,7 +18,6 @@ class Monolith {
 
   init () {
     this.scene.background = new THREE.Color('rgb(53,12,63)')
-    this.scene.add(new THREE.AxesHelper(60))
     this.camera.position.set(this.settings.blockWidth, this.settings.blockWidth, this.settings.blockWidth)
     this.camera.lookAt(this.scene.position)
     this._addLights()
@@ -75,17 +74,22 @@ class Monolith {
     this.scene.add(object)
   }
 
-  generateFloor (length, width) {
+  generateFloor (y, length, width) {
     for (let x = 0; x < length; x++) {
       for (let z = 0; z < width; z++) {
         if ((x % 2 === 0 && z % 2 === 0) || (x % 2 === 1 && z % 2 === 1)) {
-          this.placeObject(this.createBlock(0x44ff55), x, 0, z)
+          this.placeObject(this.createBlock(0x44ff55), x, y, z)
         } else {
-          this.placeObject(this.createBlock(0x33ee44), x, 0, z)
+          this.placeObject(this.createBlock(0x33ee44), x, y, z)
         }
       }
     }
     this.camera.position.y = this.settings.blockWidth * (length / 2)
+  }
+
+  // Let the camera follow an object!
+  attachCamera (object) {
+    object.cameraAttached = true
   }
 
   attachMovementControls (object) {
@@ -141,6 +145,10 @@ class Monolith {
           if (blockMoved) {
             this.objects[positionAfter.x][positionAfter.y][positionAfter.z] = Object.assign({}, this.objects[positionBefore.x][positionBefore.y][positionBefore.z])
             this.objects[positionBefore.x][positionBefore.y][positionBefore.z] = 0
+
+            if (object.cameraAttached) {
+              this.camera.position.set(object.position.x + 100, object.position.y + 100, object.position.z + 100)
+            }
           }
         }, 40 * 2)
       }
