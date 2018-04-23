@@ -21,24 +21,11 @@ class Monolith {
     this.camera.position.set(this.settings.blockWidth, this.settings.blockWidth, this.settings.blockWidth)
     this.camera.lookAt(this.scene.position)
     this._addLights()
-    this._addGrid()
     this.renderer.setSize(window.innerWidth, window.innerHeight)
     this.renderer.shadowMap.enabled = true
     document.body.appendChild(this.renderer.domElement)
 
     requestAnimationFrame(this._animate)
-  }
-
-  _addGrid () {
-    let w = this.settings.blockWidth
-    let e = 100
-    var geometry = new THREE.PlaneBufferGeometry(w * e, w * e, w * e, w * e)
-    var material = new THREE.MeshBasicMaterial({ wireframe: true, opacity: 0.05, transparent: true })
-    var grid = new THREE.Mesh(geometry, material)
-    grid.rotation.order = 'YXZ'
-    grid.rotation.y = -Math.PI / 2
-    grid.rotation.x = -Math.PI / 2
-    this.scene.add(grid)
   }
 
   _addLights () {
@@ -96,7 +83,7 @@ class Monolith {
     object.move = (direction) => {
       let positionBefore = this._getObjectsFixedPosition(object)
       let blockMoved = false
-      if (!object.inMotion) {
+      if (!object.inMotion && object.velocity === 0) {
         switch (direction) {
           case 'right':
             if (!this._checkCollision(object, 'right') && !object.inMotion) {

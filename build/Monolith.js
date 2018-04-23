@@ -50,25 +50,11 @@ var Monolith = function () {
       this.camera.position.set(this.settings.blockWidth, this.settings.blockWidth, this.settings.blockWidth);
       this.camera.lookAt(this.scene.position);
       this._addLights();
-      this._addGrid();
       this.renderer.setSize(window.innerWidth, window.innerHeight);
       this.renderer.shadowMap.enabled = true;
       document.body.appendChild(this.renderer.domElement);
 
       requestAnimationFrame(this._animate);
-    }
-  }, {
-    key: '_addGrid',
-    value: function _addGrid() {
-      var w = this.settings.blockWidth;
-      var e = 100;
-      var geometry = new THREE.PlaneBufferGeometry(w * e, w * e, w * e, w * e);
-      var material = new THREE.MeshBasicMaterial({ wireframe: true, opacity: 0.05, transparent: true });
-      var grid = new THREE.Mesh(geometry, material);
-      grid.rotation.order = 'YXZ';
-      grid.rotation.y = -Math.PI / 2;
-      grid.rotation.x = -Math.PI / 2;
-      this.scene.add(grid);
     }
   }, {
     key: '_addLights',
@@ -121,7 +107,7 @@ var Monolith = function () {
       this.camera.position.y = this.settings.blockWidth * (length / 2);
     }
 
-    // Let the camera follow the object!
+    // Let the camera follow an object!
 
   }, {
     key: 'attachCamera',
@@ -136,7 +122,7 @@ var Monolith = function () {
       object.move = function (direction) {
         var positionBefore = _this._getObjectsFixedPosition(object);
         var blockMoved = false;
-        if (!object.inMotion) {
+        if (!object.inMotion && object.velocity === 0) {
           switch (direction) {
             case 'right':
               if (!_this._checkCollision(object, 'right') && !object.inMotion) {
