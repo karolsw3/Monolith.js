@@ -49,6 +49,7 @@ var Monolith = function () {
       this.scene.background = new THREE.Color('rgb(53,12,63)');
       this.camera.position.set(this.settings.blockWidth, this.settings.blockWidth, this.settings.blockWidth);
       this.camera.lookAt(this.scene.position);
+      this.camera.position.y = this.settings.sizeY;
       this._addLights();
       this.renderer.setSize(window.innerWidth, window.innerHeight);
       this.renderer.shadowMap.enabled = true;
@@ -63,8 +64,8 @@ var Monolith = function () {
       var spotLightTop = new THREE.SpotLight(0xaaaaaa);
       var spotLightLeft = new THREE.SpotLight(0x444444);
       spotLightTop.position.set(0, 120, 0);
-      spotLightTop.castShadow = true;
-      spotLightLeft.position.set(0, 0, 120);
+      //spotLightTop.castShadow = true
+      spotLightLeft.position.set(120, 120, 120);
       spotLightLeft.castShadow = true;
 
       this.scene.add(spotLightTop);
@@ -91,20 +92,6 @@ var Monolith = function () {
       this.objects[x][y][z] = object;
       object.isFalling = !(y === 0 || this.objects[x][y - 1][z] !== 0);
       this.scene.add(object);
-    }
-  }, {
-    key: 'generateFloor',
-    value: function generateFloor(y, length, width) {
-      for (var x = 0; x < length; x++) {
-        for (var z = 0; z < width; z++) {
-          if (x % 2 === 0 && z % 2 === 0 || x % 2 === 1 && z % 2 === 1) {
-            this.placeObject(this.createBlock(0x44ff55), x, y, z);
-          } else {
-            this.placeObject(this.createBlock(0x33ee44), x, y, z);
-          }
-        }
-      }
-      this.camera.position.y = this.settings.blockWidth * (length / 2);
     }
 
     // Let the camera follow specified object!
