@@ -32,7 +32,7 @@ var Monolith = function () {
     this.objects = [];
     this.objects = this._create3DArray(this.settings.sizeX, this.settings.sizeY, this.settings.sizeZ);
     this.objectsWhichShouldFall = [];
-
+    this.referenceObject = {};
     // Three.js
     this.scene = new THREE.Scene();
     this.aspect = window.innerWidth / window.innerHeight;
@@ -102,6 +102,7 @@ var Monolith = function () {
     key: 'attachCamera',
     value: function attachCamera(object) {
       object.cameraAttached = true;
+      this.referenceObject = object;
     }
   }, {
     key: 'attachMovementControls',
@@ -234,7 +235,7 @@ var Monolith = function () {
 
       this.objectsWhichShouldFall.forEach(function (object, index) {
         var positionBefore = _this2._getObjectsFixedPosition(object);
-        if (object !== 0) {
+        if (object !== 0 && _this2._checkIfObjectIsWithinRenderDistance(object)) {
           if (!_this2._checkCollision(object, 'bottom')) {
             object.velocity += acceleration;
             object.position.y -= object.velocity;
@@ -248,6 +249,13 @@ var Monolith = function () {
           _this2.objects[positionAfter.x][Math.round(positionAfter.y)][positionAfter.z] = Object.assign({}, object);
         }
       });
+    }
+  }, {
+    key: '_checkIfObjectIsWithinRenderDistance',
+    value: function _checkIfObjectIsWithinRenderDistance(object) {
+      var position = this._getObjectsFixedPosition(object);
+      var referencePosition = this._getObjectsFixedPosition(this.referenceObject);
+      return position.x >= referencePosition.x - this.settings.renderDistance * this.settings.blockWidth && position.x <= referencePosition.x + this.settings.renderDistance * this.settings.blockWidth && position.z >= referencePosition.z - this.settings.renderDistance * this.settings.blockWidth && position.z <= referencePosition.z + this.settings.renderDistance * this.settings.blockWidth;
     }
   }, {
     key: '_getObjectsFixedPosition',

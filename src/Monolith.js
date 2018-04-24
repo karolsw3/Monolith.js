@@ -5,7 +5,7 @@ class Monolith {
     this.objects = []
     this.objects = this._create3DArray(this.settings.sizeX, this.settings.sizeY, this.settings.sizeZ)
     this.objectsWhichShouldFall = []
-
+    this.referenceObject = {}
     // Three.js
     this.scene = new THREE.Scene()
     this.aspect = window.innerWidth / window.innerHeight
@@ -67,6 +67,7 @@ class Monolith {
   // Let the camera follow specified object!
   attachCamera (object) {
     object.cameraAttached = true
+    this.referenceObject = object
   }
 
   attachMovementControls (object) {
@@ -186,7 +187,7 @@ class Monolith {
   _makeObjectsFall (acceleration) {
     this.objectsWhichShouldFall.forEach((object, index) => {
       var positionBefore = this._getObjectsFixedPosition(object)
-      if (object !== 0) {
+      if (object !== 0 && this._checkIfObjectIsWithinRenderDistance(object)) {
         if (!this._checkCollision(object, 'bottom')) {
           object.velocity += acceleration
           object.position.y -= object.velocity
@@ -200,6 +201,17 @@ class Monolith {
         this.objects[positionAfter.x][Math.round(positionAfter.y)][positionAfter.z] = Object.assign({}, object)
       }
     })
+  }
+
+  _checkIfObjectIsWithinRenderDistance (object) {
+    let position = this._getObjectsFixedPosition(object)
+    let referencePosition = this._getObjectsFixedPosition(this.referenceObject)
+    return (
+      position.x >= referencePosition.x - this.settings.renderDistance * this.settings.blockWidth &&
+      position.x <= referencePosition.x + this.settings.renderDistance * this.settings.blockWidth &&
+      position.z >= referencePosition.z - this.settings.renderDistance * this.settings.blockWidth &&
+      position.z <= referencePosition.z + this.settings.renderDistance * this.settings.blockWidth
+    )
   }
 
   _getObjectsFixedPosition (object) {

@@ -1,17 +1,17 @@
 var monolith = new Monolith({
-  sizeX: 12,
-  sizeY: 22,
+  sizeX: 30,
+  sizeY: 30,
   sizeZ: 12,
   blockWidth: 3,
   blockHeight: 1,
-  renderDistance: 10,
+  renderDistance: 3,
   gravity: 0.00981
 })
 
 monolith.init()
 
-for (let x = 0; x < 12; x++) {
-  for (let z = 0; z < 12; z++) {
+for (let x = 0; x < 30; x++) {
+  for (let z = 0; z < 30; z++) {
     monolith.placeObject(monolith.createBlock(0xaaffaa), x, 0, z)
     if (Math.round(Math.random() * 6) === 1) {
       monolith.placeObject(monolith.createBlock(0xffaaaa), x, 15, z)
