@@ -31,6 +31,7 @@ var Monolith = function () {
     this.settings = settings;
     this.objects = [];
     this.objects = this._create3DArray(this.settings.sizeX, this.settings.sizeY, this.settings.sizeZ);
+    this.objectsWhichShouldFall = [];
 
     // Three.js
     this.scene = new THREE.Scene();
@@ -64,7 +65,6 @@ var Monolith = function () {
       var spotLightTop = new THREE.SpotLight(0xaaaaaa);
       var spotLightLeft = new THREE.SpotLight(0x444444);
       spotLightTop.position.set(0, 120, 0);
-      //spotLightTop.castShadow = true
       spotLightLeft.position.set(120, 120, 120);
       spotLightLeft.castShadow = true;
 
@@ -90,7 +90,9 @@ var Monolith = function () {
       object.position.y = y * h;
       object.position.z = -z * w;
       this.objects[x][y][z] = object;
-      object.isFalling = !(y === 0 || this.objects[x][y - 1][z] !== 0);
+      if (!(y === 0 || this.objects[x][y - 1][z] !== 0)) {
+        this.objectsWhichShouldFall.push(object);
+      }
       this.scene.add(object);
     }
 
@@ -158,6 +160,7 @@ var Monolith = function () {
             if (blockMoved) {
               _this.objects[positionAfter.x][positionAfter.y][positionAfter.z] = Object.assign({}, _this.objects[positionBefore.x][positionBefore.y][positionBefore.z]);
               _this.objects[positionBefore.x][positionBefore.y][positionBefore.z] = 0;
+              _this._checkWhichObjectsShouldFall();
 
               if (object.cameraAttached) {
                 _this.smoothlySetCameraPosition(object.position.x + 100, object.position.y + 100, object.position.z + 100);
@@ -207,6 +210,22 @@ var Monolith = function () {
           return neighbour !== 0 && !neighbour.isFalling;
       }
     }
+  }, {
+    key: '_checkWhichObjectsShouldFall',
+    value: function _checkWhichObjectsShouldFall() {
+      for (var x = 0; x < this.settings.sizeX; x++) {
+        for (var y = 1; y < this.settings.sizeY; y++) {
+          for (var z = 0; z < this.settings.sizeZ; z++) {
+            var object = this.objects[x][y][z];
+            if (object !== 0) {
+              if (!this._checkCollision(object, 'bottom')) {
+                this.objectsWhichShouldFall.push(object);
+              }
+            }
+          }
+        }
+      }
+    }
 
     /**
      * If objects are not vertically colliding with other objects - make them fall
@@ -216,31 +235,24 @@ var Monolith = function () {
   }, {
     key: '_makeObjectsFall',
     value: function _makeObjectsFall(acceleration) {
-      // TODO
-      for (var x = 0; x < this.settings.sizeX; x++) {
-        for (var y = 1; y < this.settings.sizeY; y++) {
-          for (var z = 0; z < this.settings.sizeZ; z++) {
-            var object = this.objects[x][y][z];
-            if (object !== 0) {
-              if (!this._checkCollision(object, 'bottom')) {
-                object.isFalling = true;
-                object.velocity += acceleration;
-                object.position.y -= object.velocity;
-              } else {
-                object.position.y = Math.ceil(object.position.y);
-                object.velocity = 0;
-                // If object is still falling, but the collision has occured - stop it and update its position on objects matrix
-                if (object.isFalling) {
-                  object.isFalling = false;
-                  var position = this._getObjectsFixedPosition(object);
-                  this.objects[position.x][position.y][position.z] = Object.assign({}, object);
-                  this.objects[x][y][z] = 0;
-                }
-              }
-            }
+      var _this2 = this;
+
+      this.objectsWhichShouldFall.forEach(function (object, index) {
+        var positionBefore = _this2._getObjectsFixedPosition(object);
+        if (object !== 0) {
+          if (!_this2._checkCollision(object, 'bottom')) {
+            object.velocity += acceleration;
+            object.position.y -= object.velocity;
+          } else {
+            object.position.y = Math.ceil(object.position.y);
+            object.velocity = 0;
+            _this2.objectsWhichShouldFall.splice(index, 1);
           }
+          var positionAfter = _this2._getObjectsFixedPosition(object);
+          _this2.objects[positionBefore.x][Math.round(positionBefore.y)][positionBefore.z] = 0;
+          _this2.objects[positionAfter.x][Math.round(positionAfter.y)][positionAfter.z] = Object.assign({}, object);
         }
-      }
+      });
     }
   }, {
     key: '_getObjectsFixedPosition',
@@ -257,7 +269,7 @@ var Monolith = function () {
   }, {
     key: 'smoothlySetCameraPosition',
     value: function smoothlySetCameraPosition(x, y, z) {
-      var _this2 = this;
+      var _this3 = this;
 
       var translationX = x - this.camera.position.x;
       var translationY = y - this.camera.position.y;
@@ -265,9 +277,9 @@ var Monolith = function () {
       var frames = 100;
       for (var i = 0; i < frames; i++) {
         setTimeout(function () {
-          _this2.camera.position.x += translationX / frames;
-          _this2.camera.position.y += translationY / frames;
-          _this2.camera.position.z += translationZ / frames;
+          _this3.camera.position.x += translationX / frames;
+          _this3.camera.position.y += translationY / frames;
+          _this3.camera.position.z += translationZ / frames;
         }, i * 1);
       }
     }

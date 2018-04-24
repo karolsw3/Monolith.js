@@ -4,6 +4,7 @@ class Monolith {
     this.settings = settings
     this.objects = []
     this.objects = this._create3DArray(this.settings.sizeX, this.settings.sizeY, this.settings.sizeZ)
+    this.objectsWhichShouldFall = []
 
     // Three.js
     this.scene = new THREE.Scene()
@@ -34,7 +35,6 @@ class Monolith {
     var spotLightTop = new THREE.SpotLight(0xaaaaaa)
     var spotLightLeft = new THREE.SpotLight(0x444444)
     spotLightTop.position.set(0, 120, 0)
-    //spotLightTop.castShadow = true
     spotLightLeft.position.set(120, 120, 120)
     spotLightLeft.castShadow = true
 
@@ -58,7 +58,9 @@ class Monolith {
     object.position.y = y * h
     object.position.z = -z * w
     this.objects[x][y][z] = object
-    object.isFalling = !(y === 0 || this.objects[x][y - 1][z] !== 0)
+    if (!(y === 0 || this.objects[x][y - 1][z] !== 0)) {
+      this.objectsWhichShouldFall.push(object)
+    }
     this.scene.add(object)
   }
 
@@ -120,6 +122,7 @@ class Monolith {
           if (blockMoved) {
             this.objects[positionAfter.x][positionAfter.y][positionAfter.z] = Object.assign({}, this.objects[positionBefore.x][positionBefore.y][positionBefore.z])
             this.objects[positionBefore.x][positionBefore.y][positionBefore.z] = 0
+            this._checkWhichObjectsShouldFall()
 
             if (object.cameraAttached) {
               this.smoothlySetCameraPosition(object.position.x + 100, object.position.y + 100, object.position.z + 100)
@@ -166,35 +169,42 @@ class Monolith {
     }
   }
 
-  /**
-   * If objects are not vertically colliding with other objects - make them fall
-   * The objects will not fall beneath the ground position (y === 0)
-   */
-  _makeObjectsFall (acceleration) { // TODO
+  _checkWhichObjectsShouldFall () {
     for (let x = 0; x < this.settings.sizeX; x++) {
       for (let y = 1; y < this.settings.sizeY; y++) {
         for (let z = 0; z < this.settings.sizeZ; z++) {
           let object = this.objects[x][y][z]
           if (object !== 0) {
             if (!this._checkCollision(object, 'bottom')) {
-              object.isFalling = true
-              object.velocity += acceleration
-              object.position.y -= object.velocity
-            } else {
-              object.position.y = Math.ceil(object.position.y)
-              object.velocity = 0
-              // If object is still falling, but the collision has occured - stop it and update its position on objects matrix
-              if (object.isFalling) {
-                object.isFalling = false
-                var position = this._getObjectsFixedPosition(object)
-                this.objects[position.x][position.y][position.z] = Object.assign({}, object)
-                this.objects[x][y][z] = 0
-              }
+              this.objectsWhichShouldFall.push(object)
             }
           }
         }
       }
     }
+  }
+
+  /**
+   * If objects are not vertically colliding with other objects - make them fall
+   * The objects will not fall beneath the ground position (y === 0)
+   */
+  _makeObjectsFall (acceleration) {
+    this.objectsWhichShouldFall.forEach((object, index) => {
+      var positionBefore = this._getObjectsFixedPosition(object)
+      if (object !== 0) {
+        if (!this._checkCollision(object, 'bottom')) {
+          object.velocity += acceleration
+          object.position.y -= object.velocity
+        } else {
+          object.position.y = Math.ceil(object.position.y)
+          object.velocity = 0
+          this.objectsWhichShouldFall.splice(index, 1)
+        }
+        var positionAfter = this._getObjectsFixedPosition(object)
+        this.objects[positionBefore.x][Math.round(positionBefore.y)][positionBefore.z] = 0
+        this.objects[positionAfter.x][Math.round(positionAfter.y)][positionAfter.z] = Object.assign({}, object)
+      }
+    })
   }
 
   _getObjectsFixedPosition (object) {
