@@ -31,12 +31,11 @@ class Monolith {
   }
 
   _addLights () {
-    this.scene.add(new THREE.AmbientLight(0x444444))
-    var spotLightTop = new THREE.SpotLight(0xaaaaaa)
-    var spotLightLeft = new THREE.SpotLight(0x444444)
-    spotLightTop.position.set(0, 120, 0)
-    spotLightLeft.position.set(120, 120, 120)
-    spotLightLeft.castShadow = true
+    this.scene.add(new THREE.AmbientLight(0xbbbbbb))
+    var spotLightTop = new THREE.SpotLight(0x444444)
+    var spotLightLeft = new THREE.SpotLight(0x222222)
+    spotLightTop.position.set(0, 1000, 0)
+    spotLightLeft.position.set(0, 0, 1000)
 
     this.scene.add(spotLightTop)
     this.scene.add(spotLightLeft)
