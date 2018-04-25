@@ -29,7 +29,7 @@ var Monolith = function () {
     classCallCheck(this, Monolith);
 
     this.settings = settings;
-    this.objects = [];
+    this.intersectableObjects = [];
     this.objects = this._create3DArray(this.settings.sizeX, this.settings.sizeY, this.settings.sizeZ);
     this.objectsWhichShouldFall = [];
     this.referenceObject = {};
@@ -47,6 +47,8 @@ var Monolith = function () {
   createClass(Monolith, [{
     key: 'init',
     value: function init() {
+      var _this = this;
+
       this.scene.background = new THREE.Color('rgb(53,12,63)');
       this.camera.position.set(this.settings.blockWidth, this.settings.blockWidth, this.settings.blockWidth);
       this.camera.lookAt(this.scene.position);
@@ -56,6 +58,9 @@ var Monolith = function () {
       this.renderer.shadowMap.enabled = true;
       document.body.appendChild(this.renderer.domElement);
 
+      window.addEventListener('mousedown', function (e) {
+        return _this.mouseDown(e);
+      });
       requestAnimationFrame(this._animate);
     }
   }, {
@@ -89,9 +94,13 @@ var Monolith = function () {
       object.position.y = y * h;
       object.position.z = -z * w;
       this.objects[x][y][z] = object;
+      if (typeof object.mouseDown === 'undefined') {
+        object.mouseDown = function () {};
+      }
       if (!(y === 0 || this.objects[x][y - 1][z] !== 0)) {
         this.objectsWhichShouldFall.push(object);
       }
+      this.intersectableObjects.push(object);
       this.scene.add(object);
     }
 
@@ -106,15 +115,15 @@ var Monolith = function () {
   }, {
     key: 'attachMovementControls',
     value: function attachMovementControls(object) {
-      var _this = this;
+      var _this2 = this;
 
       object.move = function (direction) {
-        var positionBefore = _this._getObjectsFixedPosition(object);
+        var positionBefore = _this2._getObjectsFixedPosition(object);
         var blockMoved = false;
         if (!object.inMotion && object.velocity === 0) {
           switch (direction) {
             case 'right':
-              if (!_this._checkCollision(object, 'right') && !object.inMotion) {
+              if (!_this2._checkCollision(object, 'right') && !object.inMotion) {
                 for (var i = 0; i < 40; i++) {
                   setTimeout(function () {
                     object.position.x += 0.025 * object.geometry.parameters.width;
@@ -124,7 +133,7 @@ var Monolith = function () {
               }
               break;
             case 'backward':
-              if (!_this._checkCollision(object, 'back') && !object.inMotion) {
+              if (!_this2._checkCollision(object, 'back') && !object.inMotion) {
                 for (var _i = 0; _i < 40; _i++) {
                   setTimeout(function () {
                     object.position.z += 0.025 * object.geometry.parameters.depth;
@@ -134,7 +143,7 @@ var Monolith = function () {
               }
               break;
             case 'left':
-              if (!_this._checkCollision(object, 'left') && !object.inMotion) {
+              if (!_this2._checkCollision(object, 'left') && !object.inMotion) {
                 for (var _i2 = 0; _i2 < 40; _i2++) {
                   setTimeout(function () {
                     object.position.x -= 0.025 * object.geometry.parameters.width;
@@ -144,7 +153,7 @@ var Monolith = function () {
               }
               break;
             case 'forward':
-              if (!_this._checkCollision(object, 'front') && !object.inMotion) {
+              if (!_this2._checkCollision(object, 'front') && !object.inMotion) {
                 for (var _i3 = 0; _i3 < 40; _i3++) {
                   setTimeout(function () {
                     object.position.z -= 0.025 * object.geometry.parameters.depth;
@@ -156,14 +165,14 @@ var Monolith = function () {
           object.inMotion = true;
           setTimeout(function () {
             object.inMotion = false;
-            var positionAfter = _this._getObjectsFixedPosition(object);
+            var positionAfter = _this2._getObjectsFixedPosition(object);
             if (blockMoved) {
-              _this.objects[positionAfter.x][positionAfter.y][positionAfter.z] = Object.assign({}, _this.objects[positionBefore.x][positionBefore.y][positionBefore.z]);
-              _this.objects[positionBefore.x][positionBefore.y][positionBefore.z] = 0;
-              _this._checkIfObjectShouldFall(object);
+              _this2.objects[positionAfter.x][positionAfter.y][positionAfter.z] = Object.assign({}, _this2.objects[positionBefore.x][positionBefore.y][positionBefore.z]);
+              _this2.objects[positionBefore.x][positionBefore.y][positionBefore.z] = 0;
+              _this2._checkIfObjectShouldFall(object);
 
               if (object.cameraAttached) {
-                _this.smoothlySetCameraPosition(object.position.x + 100, object.position.y + 100, object.position.z + 100);
+                _this2.smoothlySetCameraPosition(object.position.x + 100, object.position.y + 100, object.position.z + 100);
               }
             }
           }, 40 * 2);
@@ -211,6 +220,18 @@ var Monolith = function () {
       }
     }
   }, {
+    key: 'mouseDown',
+    value: function mouseDown(event) {
+      console.log('dfasdfds');
+      event.preventDefault();
+      var mouse3D = new THREE.Vector3(event.clientX / window.innerWidth * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1, 0.5);
+      this.raycaster.setFromCamera(mouse3D, this.camera);
+      var intersects = this.raycaster.intersectObjects(this.intersectableObjects);
+      intersects.forEach(function (object) {
+        object.object.mouseDown();
+      });
+    }
+  }, {
     key: '_checkIfObjectShouldFall',
     value: function _checkIfObjectShouldFall(object) {
       if (object !== 0) {
@@ -230,22 +251,22 @@ var Monolith = function () {
   }, {
     key: '_makeObjectsFall',
     value: function _makeObjectsFall(acceleration) {
-      var _this2 = this;
+      var _this3 = this;
 
       this.objectsWhichShouldFall.forEach(function (object, index) {
-        var positionBefore = _this2._getObjectsFixedPosition(object);
-        if (object !== 0 && _this2._checkIfObjectIsWithinRenderDistance(object)) {
-          if (!_this2._checkCollision(object, 'bottom')) {
+        var positionBefore = _this3._getObjectsFixedPosition(object);
+        if (object !== 0 && _this3._checkIfObjectIsWithinRenderDistance(object)) {
+          if (!_this3._checkCollision(object, 'bottom')) {
             object.velocity += acceleration;
             object.position.y -= object.velocity;
           } else {
             object.position.y = Math.ceil(object.position.y);
             object.velocity = 0;
-            _this2.objectsWhichShouldFall.splice(index, 1);
+            _this3.objectsWhichShouldFall.splice(index, 1);
           }
-          var positionAfter = _this2._getObjectsFixedPosition(object);
-          _this2.objects[positionBefore.x][Math.round(positionBefore.y)][positionBefore.z] = 0;
-          _this2.objects[positionAfter.x][Math.round(positionAfter.y)][positionAfter.z] = Object.assign({}, object);
+          var positionAfter = _this3._getObjectsFixedPosition(object);
+          _this3.objects[positionBefore.x][Math.round(positionBefore.y)][positionBefore.z] = 0;
+          _this3.objects[positionAfter.x][Math.round(positionAfter.y)][positionAfter.z] = Object.assign({}, object);
         }
       });
     }
@@ -254,7 +275,7 @@ var Monolith = function () {
     value: function _checkIfObjectIsWithinRenderDistance(object) {
       var position = this._getObjectsFixedPosition(object);
       var referencePosition = this._getObjectsFixedPosition(this.referenceObject);
-      return position.x >= referencePosition.x - this.settings.renderDistance * this.settings.blockWidth && position.x <= referencePosition.x + this.settings.renderDistance * this.settings.blockWidth && position.z >= referencePosition.z - this.settings.renderDistance * this.settings.blockWidth && position.z <= referencePosition.z + this.settings.renderDistance * this.settings.blockWidth;
+      return position.x > referencePosition.x - this.settings.renderDistance * this.settings.blockWidth && position.x < referencePosition.x + this.settings.renderDistance * this.settings.blockWidth && position.z > referencePosition.z - this.settings.renderDistance * this.settings.blockWidth && position.z < referencePosition.z + this.settings.renderDistance * this.settings.blockWidth;
     }
   }, {
     key: '_getObjectsFixedPosition',
@@ -271,7 +292,7 @@ var Monolith = function () {
   }, {
     key: 'smoothlySetCameraPosition',
     value: function smoothlySetCameraPosition(x, y, z) {
-      var _this3 = this;
+      var _this4 = this;
 
       var translationX = x - this.camera.position.x;
       var translationY = y - this.camera.position.y;
@@ -279,9 +300,9 @@ var Monolith = function () {
       var frames = 100;
       for (var i = 0; i < frames; i++) {
         setTimeout(function () {
-          _this3.camera.position.x += translationX / frames;
-          _this3.camera.position.y += translationY / frames;
-          _this3.camera.position.z += translationZ / frames;
+          _this4.camera.position.x += translationX / frames;
+          _this4.camera.position.y += translationY / frames;
+          _this4.camera.position.z += translationZ / frames;
         }, i * 1);
       }
     }

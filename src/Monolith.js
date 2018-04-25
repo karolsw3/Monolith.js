@@ -2,7 +2,7 @@
 class Monolith {
   constructor (settings) {
     this.settings = settings
-    this.objects = []
+    this.intersectableObjects = []
     this.objects = this._create3DArray(this.settings.sizeX, this.settings.sizeY, this.settings.sizeZ)
     this.objectsWhichShouldFall = []
     this.referenceObject = {}
@@ -27,6 +27,7 @@ class Monolith {
     this.renderer.shadowMap.enabled = true
     document.body.appendChild(this.renderer.domElement)
 
+    window.addEventListener('mousedown', e => this.mouseDown(e))
     requestAnimationFrame(this._animate)
   }
 
@@ -57,9 +58,13 @@ class Monolith {
     object.position.y = y * h
     object.position.z = -z * w
     this.objects[x][y][z] = object
+    if (typeof object.mouseDown === 'undefined') {
+      object.mouseDown = () => {}
+    }
     if (!(y === 0 || this.objects[x][y - 1][z] !== 0)) {
       this.objectsWhichShouldFall.push(object)
     }
+    this.intersectableObjects.push(object)
     this.scene.add(object)
   }
 
@@ -169,6 +174,16 @@ class Monolith {
     }
   }
 
+  mouseDown (event) {
+    event.preventDefault()
+    var mouse3D = new THREE.Vector3((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1, 0.5)
+    this.raycaster.setFromCamera(mouse3D, this.camera)
+    var intersects = this.raycaster.intersectObjects(this.intersectableObjects)
+    intersects.forEach((object) => {
+      object.object.mouseDown()
+    })
+  }
+
   _checkIfObjectShouldFall (object) {
     if (object !== 0) {
       if (!this._checkCollision(object, 'bottom')) {
@@ -206,10 +221,10 @@ class Monolith {
     let position = this._getObjectsFixedPosition(object)
     let referencePosition = this._getObjectsFixedPosition(this.referenceObject)
     return (
-      position.x >= referencePosition.x - this.settings.renderDistance * this.settings.blockWidth &&
-      position.x <= referencePosition.x + this.settings.renderDistance * this.settings.blockWidth &&
-      position.z >= referencePosition.z - this.settings.renderDistance * this.settings.blockWidth &&
-      position.z <= referencePosition.z + this.settings.renderDistance * this.settings.blockWidth
+      position.x > referencePosition.x - this.settings.renderDistance * this.settings.blockWidth &&
+      position.x < referencePosition.x + this.settings.renderDistance * this.settings.blockWidth &&
+      position.z > referencePosition.z - this.settings.renderDistance * this.settings.blockWidth &&
+      position.z < referencePosition.z + this.settings.renderDistance * this.settings.blockWidth
     )
   }
 
