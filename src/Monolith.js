@@ -1,4 +1,3 @@
-
 class Monolith {
   constructor (settings) {
     this.settings = settings
@@ -13,12 +12,13 @@ class Monolith {
     this.camera = new THREE.OrthographicCamera(-20 * this.aspect, 20 * this.aspect, 20, -20, 1, 1000)
     this.renderer = new THREE.WebGLRenderer()
     this.raycaster = new THREE.Raycaster()
+    this.intersectedObject = {}
 
     this._animate = this._animate.bind(this)
   }
 
   init () {
-    this.scene.background = new THREE.Color('rgb(53,12,63)')
+    this.scene.background = new THREE.Color(this.settings.backgroundColor)
     this.camera.position.set(this.settings.blockWidth, this.settings.blockWidth, this.settings.blockWidth)
     this.camera.lookAt(this.scene.position)
     this.camera.position.y = this.settings.sizeY
@@ -28,6 +28,7 @@ class Monolith {
     document.body.appendChild(this.renderer.domElement)
 
     window.addEventListener('mousedown', e => this.mouseDown(e))
+    window.addEventListener('mousemove', e => this.mouseMove(e))
     requestAnimationFrame(this._animate)
   }
 
@@ -46,6 +47,7 @@ class Monolith {
     let w = this.settings.blockWidth
     let h = this.settings.blockHeight
     let block = new THREE.Mesh(new THREE.CubeGeometry(w, h, w), new THREE.MeshLambertMaterial({color: color}))
+    block.defaultColor = color
     block.velocity = 0
     block.inMotion = false
     return block
@@ -171,6 +173,23 @@ class Monolith {
       case 'back':
         neighbour = this.objects[position.x][position.y][position.z - 1]
         return (neighbour !== 0 && !neighbour.isFalling)
+    }
+  }
+
+  mouseMove (event) {
+    event.preventDefault()
+    var mouse3D = new THREE.Vector3((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1, 0.5)
+    this.raycaster.setFromCamera(mouse3D, this.camera)
+    var intersects = this.raycaster.intersectObjects(this.intersectableObjects)
+    if (typeof intersects[0] === 'object') {
+      if (this.intersectedObject.id !== intersects[0].object.id) {
+        try {
+          this.intersectedObject.material.color.setHex(this.intersectedObject.defaultColor)
+        } catch (e) {}
+        this.intersectedObject = intersects[0].object
+      } else {
+        intersects[0].object.material.color.setHex(0xffffff)
+      }
     }
   }
 

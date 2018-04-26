@@ -1,5 +1,11 @@
 'use strict';
 
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) {
+  return typeof obj;
+} : function (obj) {
+  return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
+};
+
 var classCallCheck = function (instance, Constructor) {
   if (!(instance instanceof Constructor)) {
     throw new TypeError("Cannot call a class as a function");
@@ -40,6 +46,7 @@ var Monolith = function () {
     this.camera = new THREE.OrthographicCamera(-20 * this.aspect, 20 * this.aspect, 20, -20, 1, 1000);
     this.renderer = new THREE.WebGLRenderer();
     this.raycaster = new THREE.Raycaster();
+    this.intersectedObject = {};
 
     this._animate = this._animate.bind(this);
   }
@@ -49,7 +56,7 @@ var Monolith = function () {
     value: function init() {
       var _this = this;
 
-      this.scene.background = new THREE.Color('rgb(53,12,63)');
+      this.scene.background = new THREE.Color(this.settings.backgroundColor);
       this.camera.position.set(this.settings.blockWidth, this.settings.blockWidth, this.settings.blockWidth);
       this.camera.lookAt(this.scene.position);
       this.camera.position.y = this.settings.sizeY;
@@ -60,6 +67,9 @@ var Monolith = function () {
 
       window.addEventListener('mousedown', function (e) {
         return _this.mouseDown(e);
+      });
+      window.addEventListener('mousemove', function (e) {
+        return _this.mouseMove(e);
       });
       requestAnimationFrame(this._animate);
     }
@@ -81,6 +91,7 @@ var Monolith = function () {
       var w = this.settings.blockWidth;
       var h = this.settings.blockHeight;
       var block = new THREE.Mesh(new THREE.CubeGeometry(w, h, w), new THREE.MeshLambertMaterial({ color: color }));
+      block.defaultColor = color;
       block.velocity = 0;
       block.inMotion = false;
       return block;
@@ -220,9 +231,26 @@ var Monolith = function () {
       }
     }
   }, {
+    key: 'mouseMove',
+    value: function mouseMove(event) {
+      event.preventDefault();
+      var mouse3D = new THREE.Vector3(event.clientX / window.innerWidth * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1, 0.5);
+      this.raycaster.setFromCamera(mouse3D, this.camera);
+      var intersects = this.raycaster.intersectObjects(this.intersectableObjects);
+      if (_typeof(intersects[0]) === 'object') {
+        if (this.intersectedObject.id !== intersects[0].object.id) {
+          try {
+            this.intersectedObject.material.color.setHex(this.intersectedObject.defaultColor);
+          } catch (e) {}
+          this.intersectedObject = intersects[0].object;
+        } else {
+          intersects[0].object.material.color.setHex(0xffffff);
+        }
+      }
+    }
+  }, {
     key: 'mouseDown',
     value: function mouseDown(event) {
-      console.log('dfasdfds');
       event.preventDefault();
       var mouse3D = new THREE.Vector3(event.clientX / window.innerWidth * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1, 0.5);
       this.raycaster.setFromCamera(mouse3D, this.camera);
