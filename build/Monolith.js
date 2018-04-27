@@ -127,6 +127,62 @@ var Monolith = function () {
       this.referenceObject = object;
     }
   }, {
+    key: '_moveObjectInCertainDirection',
+    value: function _moveObjectInCertainDirection(object, direction) {
+      switch (direction) {
+        case 'backward':
+          direction = 'back';
+          break;
+        case 'forward':
+          direction = 'front';
+          break;
+      }
+
+      if (!this._checkCollision(object, direction) && !object.inMotion) {
+        for (var i = 0; i < 40; i++) {
+          setTimeout(function () {
+            switch (direction) {
+              case 'right':
+                object.position.x += 0.025 * object.geometry.parameters.width;
+                break;
+              case 'left':
+                object.position.x -= 0.025 * object.geometry.parameters.width;
+                break;
+              case 'front':
+                object.position.z -= 0.025 * object.geometry.parameters.width;
+                break;
+              case 'back':
+                object.position.z += 0.025 * object.geometry.parameters.width;
+                break;
+            }
+          }, i * 1);
+        }
+      }
+    }
+  }, {
+    key: '_updateObjectsPositionInMatrix',
+    value: function _updateObjectsPositionInMatrix(object, positionBefore) {
+      var positionAfter = this._getObjectsFixedPosition(object);
+      this.objects[positionAfter.x][positionAfter.y][positionAfter.z] = Object.assign({}, this.objects[positionBefore.x][positionBefore.y][positionBefore.z]);
+      this.objects[positionBefore.x][positionBefore.y][positionBefore.z] = 0;
+      for (var y = 1; y < this.settings.sizeY - positionBefore.y; y++) {
+        if (this.objects[positionBefore.x][positionBefore.y + y][positionBefore.z] !== 0) {
+          var objectToCheck = this.objects[positionBefore.x][positionBefore.y + y][positionBefore.z];
+          if (this._checkIfObjectShouldFall(objectToCheck)) {
+            objectToCheck.isFalling = true;
+            this.objectsWhichShouldFall.push(objectToCheck);
+          }
+        }
+      }
+      if (this._checkIfObjectShouldFall(object)) {
+        object.isFalling = true;
+        this.objectsWhichShouldFall.push(object);
+      }
+      if (object.cameraAttached) {
+        this.smoothlySetCameraPosition(object.position.x + 100, object.position.y + 100, object.position.z + 100);
+      }
+    }
+  }, {
     key: 'attachMovementControls',
     value: function attachMovementControls(object) {
       var _this2 = this;
@@ -135,72 +191,15 @@ var Monolith = function () {
         var positionBefore = _this2._getObjectsFixedPosition(object);
         var blockMoved = false;
         if (!object.inMotion && object.velocity === 0) {
-          switch (direction) {
-            case 'right':
-              if (!_this2._checkCollision(object, 'right') && !object.inMotion) {
-                for (var i = 0; i < 40; i++) {
-                  setTimeout(function () {
-                    object.position.x += 0.025 * object.geometry.parameters.width;
-                  }, i * 1);
-                  blockMoved = true;
-                }
-              }
-              break;
-            case 'backward':
-              if (!_this2._checkCollision(object, 'back') && !object.inMotion) {
-                for (var _i = 0; _i < 40; _i++) {
-                  setTimeout(function () {
-                    object.position.z += 0.025 * object.geometry.parameters.depth;
-                  }, _i * 1);
-                  blockMoved = true;
-                }
-              }
-              break;
-            case 'left':
-              if (!_this2._checkCollision(object, 'left') && !object.inMotion) {
-                for (var _i2 = 0; _i2 < 40; _i2++) {
-                  setTimeout(function () {
-                    object.position.x -= 0.025 * object.geometry.parameters.width;
-                  }, _i2 * 1);
-                  blockMoved = true;
-                }
-              }
-              break;
-            case 'forward':
-              if (!_this2._checkCollision(object, 'front') && !object.inMotion) {
-                for (var _i3 = 0; _i3 < 40; _i3++) {
-                  setTimeout(function () {
-                    object.position.z -= 0.025 * object.geometry.parameters.depth;
-                  }, _i3 * 1);
-                  blockMoved = true;
-                }
-              }
-          }
+          _this2._moveObjectInCertainDirection(object, direction);
+          blockMoved = true;
           object.inMotion = true;
-          setTimeout(function () {
-            object.inMotion = false;
-            var positionAfter = _this2._getObjectsFixedPosition(object);
-            if (blockMoved) {
-              _this2.objects[positionAfter.x][positionAfter.y][positionAfter.z] = Object.assign({}, _this2.objects[positionBefore.x][positionBefore.y][positionBefore.z]);
-              _this2.objects[positionBefore.x][positionBefore.y][positionBefore.z] = 0;
-              for (var y = 1; y < _this2.settings.sizeY - positionBefore.y; y++) {
-                if (_this2.objects[positionBefore.x][positionBefore.y + y][positionBefore.z] !== 0) {
-                  var objectToCheck = _this2.objects[positionBefore.x][positionBefore.y + y][positionBefore.z];
-                  if (_this2._checkIfObjectShouldFall(objectToCheck)) {
-                    objectToCheck.isFalling = true;
-                    _this2.objectsWhichShouldFall.push(objectToCheck);
-                  }
-                }
-              }
-              if (_this2._checkIfObjectShouldFall(object)) {
-                object.isFalling = true;
-                _this2.objectsWhichShouldFall.push(object);
-              }
-              if (object.cameraAttached) {
-                _this2.smoothlySetCameraPosition(object.position.x + 100, object.position.y + 100, object.position.z + 100);
-              }
-            }
-          }, 40 * 2);
+          if (blockMoved) {
+            setTimeout(function () {
+              _this2._updateObjectsPositionInMatrix(object, positionBefore);
+            }, 40 * 2);
+          }
+          object.inMotion = false;
         }
         object.position.x = Math.round(object.position.x);
         object.position.z = Math.round(object.position.z);

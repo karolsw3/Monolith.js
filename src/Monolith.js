@@ -79,77 +79,75 @@ class Monolith {
     this.referenceObject = object
   }
 
+  _moveObjectInCertainDirection (object, direction) {
+    switch (direction) {
+      case 'backward':
+        direction = 'back'
+        break
+      case 'forward':
+        direction = 'front'
+        break
+    }
+
+    if (!this._checkCollision(object, direction) && !object.inMotion) {
+      for (let i = 0; i < 40; i++) {
+        setTimeout(() => {
+          switch (direction) {
+            case 'right':
+              object.position.x += (0.025 * object.geometry.parameters.width)
+              break
+            case 'left':
+              object.position.x -= (0.025 * object.geometry.parameters.width)
+              break
+            case 'front':
+              object.position.z -= (0.025 * object.geometry.parameters.width)
+              break
+            case 'back':
+              object.position.z += (0.025 * object.geometry.parameters.width)
+              break
+          }
+        }, i * 1)
+      }
+    }
+  }
+
+  _updateObjectsPositionInMatrix (object, positionBefore) {
+    let positionAfter = this._getObjectsFixedPosition(object)
+    this.objects[positionAfter.x][positionAfter.y][positionAfter.z] = Object.assign({}, this.objects[positionBefore.x][positionBefore.y][positionBefore.z])
+    this.objects[positionBefore.x][positionBefore.y][positionBefore.z] = 0
+
+    for (let y = 1; y < this.settings.sizeY - positionBefore.y; y++) {
+      if (this.objects[positionBefore.x][positionBefore.y + y][positionBefore.z] !== 0) {
+        let objectToCheck = this.objects[positionBefore.x][positionBefore.y + y][positionBefore.z]
+        if (this._checkIfObjectShouldFall(objectToCheck)) {
+          objectToCheck.isFalling = true
+          this.objectsWhichShouldFall.push(objectToCheck)
+        }
+      }
+    }
+    if (this._checkIfObjectShouldFall(object)) {
+      object.isFalling = true
+      this.objectsWhichShouldFall.push(object)
+    }
+    if (object.cameraAttached) {
+      this.smoothlySetCameraPosition(object.position.x + 100, object.position.y + 100, object.position.z + 100)
+    }
+  }
+
   attachMovementControls (object) {
     object.move = (direction) => {
       let positionBefore = this._getObjectsFixedPosition(object)
       let blockMoved = false
       if (!object.inMotion && object.velocity === 0) {
-        switch (direction) {
-          case 'right':
-            if (!this._checkCollision(object, 'right') && !object.inMotion) {
-              for (let i = 0; i < 40; i++) {
-                setTimeout(() => {
-                  object.position.x += (0.025 * object.geometry.parameters.width)
-                }, i * 1)
-                blockMoved = true
-              }
-            }
-            break
-          case 'backward':
-            if (!this._checkCollision(object, 'back') && !object.inMotion) {
-              for (let i = 0; i < 40; i++) {
-                setTimeout(() => {
-                  object.position.z += (0.025 * object.geometry.parameters.depth)
-                }, i * 1)
-                blockMoved = true
-              }
-            }
-            break
-          case 'left':
-            if (!this._checkCollision(object, 'left') && !object.inMotion) {
-              for (let i = 0; i < 40; i++) {
-                setTimeout(() => {
-                  object.position.x -= (0.025 * object.geometry.parameters.width)
-                }, i * 1)
-                blockMoved = true
-              }
-            }
-            break
-          case 'forward':
-            if (!this._checkCollision(object, 'front') && !object.inMotion) {
-              for (let i = 0; i < 40; i++) {
-                setTimeout(() => {
-                  object.position.z -= (0.025 * object.geometry.parameters.depth)
-                }, i * 1)
-                blockMoved = true
-              }
-            }
-        }
+        this._moveObjectInCertainDirection(object, direction)
+        blockMoved = true
         object.inMotion = true
-        setTimeout(() => {
-          object.inMotion = false
-          let positionAfter = this._getObjectsFixedPosition(object)
-          if (blockMoved) {
-            this.objects[positionAfter.x][positionAfter.y][positionAfter.z] = Object.assign({}, this.objects[positionBefore.x][positionBefore.y][positionBefore.z])
-            this.objects[positionBefore.x][positionBefore.y][positionBefore.z] = 0
-            for (let y = 1; y < this.settings.sizeY - positionBefore.y; y++) {
-              if (this.objects[positionBefore.x][positionBefore.y + y][positionBefore.z] !== 0) {
-                let objectToCheck = this.objects[positionBefore.x][positionBefore.y + y][positionBefore.z]
-                if (this._checkIfObjectShouldFall(objectToCheck)) {
-                  objectToCheck.isFalling = true
-                  this.objectsWhichShouldFall.push(objectToCheck)
-                }
-              }
-            }
-            if (this._checkIfObjectShouldFall(object)) {
-              object.isFalling = true
-              this.objectsWhichShouldFall.push(object)
-            }
-            if (object.cameraAttached) {
-              this.smoothlySetCameraPosition(object.position.x + 100, object.position.y + 100, object.position.z + 100)
-            }
-          }
-        }, 40 * 2)
+        if (blockMoved) {
+          setTimeout(() => {
+            this._updateObjectsPositionInMatrix(object, positionBefore)
+          }, 40 * 2)
+        }
+        object.inMotion = false
       }
       object.position.x = Math.round(object.position.x)
       object.position.z = Math.round(object.position.z)
