@@ -1,11 +1,11 @@
 var monolith = new Monolith({
   sizeX: 40,
-  sizeY: 20,
+  sizeY: 40,
   sizeZ: 40,
   backgroundColor: 'rgb(53,12,63)',
   blockWidth: 3,
   blockHeight: 1,
-  renderDistance: 2,
+  renderDistance: 4,
   gravity: 0.00981
 })
 
@@ -29,9 +29,14 @@ let player = monolith.createBlock(0x00033)
 player.mouseDown = () => {
   player.position.y += 10
 }
+
+monolith.placeObject(monolith.createBlock(0x44adde), 10, 9, 10)
+monolith.placeObject(monolith.createBlock(0x44adde), 10, 12, 10)
+
 monolith.attachMovementControls(player)
 monolith.attachCamera(player)
 monolith.placeObject(player, 10, 6, 10)
+
 
 window.addEventListener('keydown', (event) => {
   var keyCode = event.keyCode

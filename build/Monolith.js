@@ -183,7 +183,19 @@ var Monolith = function () {
             if (blockMoved) {
               _this2.objects[positionAfter.x][positionAfter.y][positionAfter.z] = Object.assign({}, _this2.objects[positionBefore.x][positionBefore.y][positionBefore.z]);
               _this2.objects[positionBefore.x][positionBefore.y][positionBefore.z] = 0;
-              _this2._checkIfObjectShouldFall(object);
+              for (var y = 1; y < _this2.settings.sizeY - positionBefore.y; y++) {
+                if (_this2.objects[positionBefore.x][positionBefore.y + y][positionBefore.z] !== 0) {
+                  var objectToCheck = _this2.objects[positionBefore.x][positionBefore.y + y][positionBefore.z];
+                  if (_this2._checkIfObjectShouldFall(objectToCheck)) {
+                    objectToCheck.isFalling = true;
+                    _this2.objectsWhichShouldFall.push(objectToCheck);
+                  }
+                }
+              }
+              if (_this2._checkIfObjectShouldFall(object)) {
+                object.isFalling = true;
+                _this2.objectsWhichShouldFall.push(object);
+              }
               if (object.cameraAttached) {
                 _this2.smoothlySetCameraPosition(object.position.x + 100, object.position.y + 100, object.position.z + 100);
               }

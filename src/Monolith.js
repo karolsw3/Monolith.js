@@ -132,7 +132,19 @@ class Monolith {
           if (blockMoved) {
             this.objects[positionAfter.x][positionAfter.y][positionAfter.z] = Object.assign({}, this.objects[positionBefore.x][positionBefore.y][positionBefore.z])
             this.objects[positionBefore.x][positionBefore.y][positionBefore.z] = 0
-            this._checkIfObjectShouldFall(object)
+            for (let y = 1; y < this.settings.sizeY - positionBefore.y; y++) {
+              if (this.objects[positionBefore.x][positionBefore.y + y][positionBefore.z] !== 0) {
+                let objectToCheck = this.objects[positionBefore.x][positionBefore.y + y][positionBefore.z]
+                if (this._checkIfObjectShouldFall(objectToCheck)) {
+                  objectToCheck.isFalling = true
+                  this.objectsWhichShouldFall.push(objectToCheck)
+                }
+              }
+            }
+            if (this._checkIfObjectShouldFall(object)) {
+              object.isFalling = true
+              this.objectsWhichShouldFall.push(object)
+            }
             if (object.cameraAttached) {
               this.smoothlySetCameraPosition(object.position.x + 100, object.position.y + 100, object.position.z + 100)
             }
