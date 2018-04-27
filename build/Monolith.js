@@ -108,9 +108,12 @@ var Monolith = function () {
       if (typeof object.mouseDown === 'undefined') {
         object.mouseDown = function () {};
       }
-      if (!(y === 0 || this.objects[x][y - 1][z] !== 0)) {
+
+      if (this._checkIfObjectShouldFall(object)) {
+        object.isFalling = true;
         this.objectsWhichShouldFall.push(object);
       }
+
       this.intersectableObjects.push(object);
       this.scene.add(object);
     }
@@ -181,7 +184,6 @@ var Monolith = function () {
               _this2.objects[positionAfter.x][positionAfter.y][positionAfter.z] = Object.assign({}, _this2.objects[positionBefore.x][positionBefore.y][positionBefore.z]);
               _this2.objects[positionBefore.x][positionBefore.y][positionBefore.z] = 0;
               _this2._checkIfObjectShouldFall(object);
-
               if (object.cameraAttached) {
                 _this2.smoothlySetCameraPosition(object.position.x + 100, object.position.y + 100, object.position.z + 100);
               }
@@ -262,9 +264,9 @@ var Monolith = function () {
   }, {
     key: '_checkIfObjectShouldFall',
     value: function _checkIfObjectShouldFall(object) {
+      var position = this._getObjectsFixedPosition(object);
       if (object !== 0) {
-        if (!this._checkCollision(object, 'bottom')) {
-          this.objectsWhichShouldFall.push(object);
+        if (position.y > 0 && (this.objects[position.x][position.y - 1][position.z].isFalling || this.objects[position.x][position.y - 1][position.z] === 0)) {
           return true;
         }
       }
@@ -290,6 +292,7 @@ var Monolith = function () {
           } else {
             object.position.y = Math.ceil(object.position.y);
             object.velocity = 0;
+            object.isFalling = false;
             _this3.objectsWhichShouldFall.splice(index, 1);
           }
           var positionAfter = _this3._getObjectsFixedPosition(object);

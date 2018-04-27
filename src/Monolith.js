@@ -34,8 +34,8 @@ class Monolith {
 
   _addLights () {
     this.scene.add(new THREE.AmbientLight(0xbbbbbb))
-    var spotLightTop = new THREE.SpotLight(0x444444)
-    var spotLightLeft = new THREE.SpotLight(0x222222)
+    let spotLightTop = new THREE.SpotLight(0x444444)
+    let spotLightLeft = new THREE.SpotLight(0x222222)
     spotLightTop.position.set(0, 1000, 0)
     spotLightLeft.position.set(0, 0, 1000)
 
@@ -63,9 +63,12 @@ class Monolith {
     if (typeof object.mouseDown === 'undefined') {
       object.mouseDown = () => {}
     }
-    if (!(y === 0 || this.objects[x][y - 1][z] !== 0)) {
+
+    if (this._checkIfObjectShouldFall(object)) {
+      object.isFalling = true
       this.objectsWhichShouldFall.push(object)
     }
+
     this.intersectableObjects.push(object)
     this.scene.add(object)
   }
@@ -130,7 +133,6 @@ class Monolith {
             this.objects[positionAfter.x][positionAfter.y][positionAfter.z] = Object.assign({}, this.objects[positionBefore.x][positionBefore.y][positionBefore.z])
             this.objects[positionBefore.x][positionBefore.y][positionBefore.z] = 0
             this._checkIfObjectShouldFall(object)
-
             if (object.cameraAttached) {
               this.smoothlySetCameraPosition(object.position.x + 100, object.position.y + 100, object.position.z + 100)
             }
@@ -152,7 +154,7 @@ class Monolith {
    * Check collision with specified object and its neighbour at specified direction
    */
   _checkCollision (object, direction) {
-    var position = this._getObjectsFixedPosition(object)
+    let position = this._getObjectsFixedPosition(object)
     let neighbour
     switch (direction) {
       case 'bottom':
@@ -178,9 +180,9 @@ class Monolith {
 
   mouseMove (event) {
     event.preventDefault()
-    var mouse3D = new THREE.Vector3((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1, 0.5)
+    let mouse3D = new THREE.Vector3((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1, 0.5)
     this.raycaster.setFromCamera(mouse3D, this.camera)
-    var intersects = this.raycaster.intersectObjects(this.intersectableObjects)
+    let intersects = this.raycaster.intersectObjects(this.intersectableObjects)
     if (typeof intersects[0] === 'object') {
       if (this.intersectedObject.id !== intersects[0].object.id) {
         try {
@@ -195,18 +197,18 @@ class Monolith {
 
   mouseDown (event) {
     event.preventDefault()
-    var mouse3D = new THREE.Vector3((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1, 0.5)
+    let mouse3D = new THREE.Vector3((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1, 0.5)
     this.raycaster.setFromCamera(mouse3D, this.camera)
-    var intersects = this.raycaster.intersectObjects(this.intersectableObjects)
+    let intersects = this.raycaster.intersectObjects(this.intersectableObjects)
     intersects.forEach((object) => {
       object.object.mouseDown()
     })
   }
 
   _checkIfObjectShouldFall (object) {
+    let position = this._getObjectsFixedPosition(object)
     if (object !== 0) {
-      if (!this._checkCollision(object, 'bottom')) {
-        this.objectsWhichShouldFall.push(object)
+      if (position.y > 0 && (this.objects[position.x][position.y - 1][position.z].isFalling || this.objects[position.x][position.y - 1][position.z] === 0)) {
         return true
       }
     }
@@ -219,7 +221,7 @@ class Monolith {
    */
   _makeObjectsFall (acceleration) {
     this.objectsWhichShouldFall.forEach((object, index) => {
-      var positionBefore = this._getObjectsFixedPosition(object)
+      let positionBefore = this._getObjectsFixedPosition(object)
       if (object !== 0 && this._checkIfObjectIsWithinRenderDistance(object)) {
         if (!this._checkCollision(object, 'bottom')) {
           object.velocity += acceleration
@@ -227,9 +229,10 @@ class Monolith {
         } else {
           object.position.y = Math.ceil(object.position.y)
           object.velocity = 0
+          object.isFalling = false
           this.objectsWhichShouldFall.splice(index, 1)
         }
-        var positionAfter = this._getObjectsFixedPosition(object)
+        let positionAfter = this._getObjectsFixedPosition(object)
         this.objects[positionBefore.x][Math.round(positionBefore.y)][positionBefore.z] = 0
         this.objects[positionAfter.x][Math.round(positionAfter.y)][positionAfter.z] = Object.assign({}, object)
       }
@@ -248,9 +251,9 @@ class Monolith {
   }
 
   _getObjectsFixedPosition (object) {
-    var objectX = -Math.round(object.position.x / object.geometry.parameters.width)
-    var objectY = Math.ceil(object.position.y / object.geometry.parameters.height)
-    var objectZ = -Math.round(object.position.z / object.geometry.parameters.depth)
+    let objectX = -Math.round(object.position.x / object.geometry.parameters.width)
+    let objectY = Math.ceil(object.position.y / object.geometry.parameters.height)
+    let objectZ = -Math.round(object.position.z / object.geometry.parameters.depth)
     return {
       x: objectX,
       y: objectY,

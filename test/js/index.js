@@ -1,6 +1,6 @@
 var monolith = new Monolith({
   sizeX: 40,
-  sizeY: 110,
+  sizeY: 20,
   sizeZ: 40,
   backgroundColor: 'rgb(53,12,63)',
   blockWidth: 3,
@@ -19,8 +19,8 @@ for (let x = 0; x < 35; x++) {
     }
     if (Math.round(Math.random() * 12) === 1) {
       monolith.placeObject(monolith.createBlock(0xaa55f4), x, 7, z)
-      monolith.placeObject(monolith.createBlock(0xbcdef3), x, 9, z)
-      monolith.placeObject(monolith.createBlock(0x44adde), x, 11, z)
+      monolith.placeObject(monolith.createBlock(0xbcdef3), x, 8, z)
+      monolith.placeObject(monolith.createBlock(0x44adde), x, 9, z)
     }
   }
 }
