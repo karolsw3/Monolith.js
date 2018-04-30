@@ -2,17 +2,23 @@ class Monolith {
   constructor (settings) {
     this.settings = settings
     this.intersectableObjects = []
-    this.objects = this._create3DArray(this.settings.sizeX, this.settings.sizeY, this.settings.sizeZ)
-    this.objectsWhichShouldFall = []
     this.referenceObject = {}
     // Three.js
     this.scene = new THREE.Scene()
     this.aspect = window.innerWidth / window.innerHeight
-    this.geometry = new THREE.BoxGeometry(1, 1, 1)
+    this.geometry = new THREE.BoxGeometry(3, 1, 3)
     this.camera = new THREE.OrthographicCamera(-20 * this.aspect, 20 * this.aspect, 20, -20, 1, 1000)
-    this.renderer = new THREE.WebGLRenderer()
+    this.renderer = new THREE.WebGLRenderer({ antialias: true })
     this.raycaster = new THREE.Raycaster()
     this.intersectedObject = {}
+
+    // Cannon.js
+    this.bodies = []
+    this.meshes = []
+    this.fixedTimeStep = 1 / 60
+    this.maxSubSteps = 3
+    this.groundMaterial = new CANNON.Material()
+    this.meshMaterial = new CANNON.Material()
 
     this._animate = this._animate.bind(this)
   }
@@ -27,10 +33,39 @@ class Monolith {
     this.renderer.shadowMap.enabled = true
     document.body.appendChild(this.renderer.domElement)
 
+    // Cannon.js
+
+    this.world = new CANNON.World()
+    this.world.gravity.set(0, -9.81, 0)
+    this._addGround()
+
+    // Create contact material behaviour
+    let materialToGroundContact = new CANNON.ContactMaterial(this.groundMaterial, this.meshMaterial, { friction: 0.6, restitution: 0.0 })
+    let materialToMaterialContact = new CANNON.ContactMaterial(this.meshMaterial, this.meshMaterial, { friction: 0.6, restitution: 0.0 })
+    this.world.addContactMaterial(materialToGroundContact)
+    this.world.addContactMaterial(materialToMaterialContact)
+
     window.addEventListener('mousedown', e => this.mouseDown(e))
     window.addEventListener('mousemove', e => this.mouseMove(e))
     requestAnimationFrame(this._animate)
   }
+
+  _addGround () {
+    // Physics
+    let shape = new CANNON.Plane()
+    let body = new CANNON.Body({ mass: 0, material: this.groundMaterial })
+    body.addShape(shape)
+    body.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2)
+    this.world.addBody(body)
+    this.bodies.push(body)
+
+    // Graphics
+    let geometry = new THREE.PlaneGeometry(100, 100, 1, 1)
+    let mesh = new THREE.Mesh(geometry, new THREE.MeshLambertMaterial({color: this.settings.backgroundColor}))
+    mesh.quaternion.setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2)
+    this.scene.add(mesh)
+    this.meshes.push(mesh)
+}
 
   _addLights () {
     this.scene.add(new THREE.AmbientLight(0xbbbbbb))
@@ -46,28 +81,29 @@ class Monolith {
   createBlock (color) {
     let w = this.settings.blockWidth
     let h = this.settings.blockHeight
+
+    // Graphics
     let block = new THREE.Mesh(new THREE.CubeGeometry(w, h, w), new THREE.MeshLambertMaterial({color: color}))
+    this.meshes.push(block)
     block.defaultColor = color
-    block.velocity = 0
-    block.inMotion = false
     return block
   }
 
   placeObject (object, x, y, z) {
     let w = this.settings.blockWidth
     let h = this.settings.blockHeight
-    object.position.x = -x * w
-    object.position.y = y * h
-    object.position.z = -z * w
-    this.objects[x][y][z] = object
+
     if (typeof object.mouseDown === 'undefined') {
       object.mouseDown = () => {}
     }
 
-    if (this._checkIfObjectShouldFall(object)) {
-      object.isFalling = true
-      this.objectsWhichShouldFall.push(object)
-    }
+    // Physics
+    var shape = new CANNON.Box(new CANNON.Vec3(0.5, 0.5, 0.5))
+    var body = new CANNON.Body({ mass: 5, material: this.meshMaterial })
+    body.addShape(shape)
+    body.position.set(-x * w, y * h, -z * w)
+    this.world.addBody(body)
+    this.bodies.push(body)
 
     this.intersectableObjects.push(object)
     this.scene.add(object)
@@ -89,102 +125,38 @@ class Monolith {
         break
     }
 
-    if (!this._checkCollision(object, direction) && !object.inMotion) {
-      for (let i = 0; i < 40; i++) {
-        setTimeout(() => {
-          switch (direction) {
-            case 'right':
-              object.position.x += (0.025 * object.geometry.parameters.width)
-              break
-            case 'left':
-              object.position.x -= (0.025 * object.geometry.parameters.width)
-              break
-            case 'front':
-              object.position.z -= (0.025 * object.geometry.parameters.width)
-              break
-            case 'back':
-              object.position.z += (0.025 * object.geometry.parameters.width)
-              break
-          }
-        }, i * 1)
-      }
+    for (let i = 0; i < 40; i++) {
+      setTimeout(() => {
+        switch (direction) {
+          case 'right':
+            object.position.x += (0.025 * object.geometry.parameters.width)
+            break
+          case 'left':
+            object.position.x -= (0.025 * object.geometry.parameters.width)
+            break
+          case 'front':
+            object.position.z -= (0.025 * object.geometry.parameters.width)
+            break
+          case 'back':
+            object.position.z += (0.025 * object.geometry.parameters.width)
+            break
+        }
+      }, i * 1)
     }
   }
 
-  _updateObjectsPositionInMatrix (object, positionBefore) {
-    let positionAfter = this._getObjectsFixedPosition(object)
-    this.objects[positionAfter.x][positionAfter.y][positionAfter.z] = Object.assign({}, this.objects[positionBefore.x][positionBefore.y][positionBefore.z])
-    this.objects[positionBefore.x][positionBefore.y][positionBefore.z] = 0
-
-    for (let y = 1; y < this.settings.sizeY - positionBefore.y; y++) {
-      if (this.objects[positionBefore.x][positionBefore.y + y][positionBefore.z] !== 0) {
-        let objectToCheck = this.objects[positionBefore.x][positionBefore.y + y][positionBefore.z]
-        if (this._checkIfObjectShouldFall(objectToCheck)) {
-          objectToCheck.isFalling = true
-          this.objectsWhichShouldFall.push(objectToCheck)
-        }
-      }
-    }
-    if (this._checkIfObjectShouldFall(object)) {
-      object.isFalling = true
-      this.objectsWhichShouldFall.push(object)
-    }
-    if (object.cameraAttached) {
-      this.smoothlySetCameraPosition(object.position.x + 100, object.position.y + 100, object.position.z + 100)
+  _updateMeshPositions () {
+    for (var i = 0; i < this.meshes.length; i++) {
+      this.meshes[i].position.copy(this.bodies[i].position)
+      this.meshes[i].quaternion.copy(this.bodies[i].quaternion)
     }
   }
 
   attachMovementControls (object) {
     object.move = (direction) => {
-      let positionBefore = this._getObjectsFixedPosition(object)
-      let blockMoved = false
-      if (!object.inMotion && object.velocity === 0) {
-        this._moveObjectInCertainDirection(object, direction)
-        blockMoved = true
-        object.inMotion = true
-        if (blockMoved) {
-          setTimeout(() => {
-            this._updateObjectsPositionInMatrix(object, positionBefore)
-          }, 40 * 2)
-        }
-        object.inMotion = false
-      }
+      this._moveObjectInCertainDirection(object, direction)
       object.position.x = Math.round(object.position.x)
       object.position.z = Math.round(object.position.z)
-    }
-  }
-
-  _animate () {
-    this._render()
-    this._makeObjectsFall(this.settings.gravity)
-    requestAnimationFrame(this._animate)
-  }
-
-  /**
-   * Check collision with specified object and its neighbour at specified direction
-   */
-  _checkCollision (object, direction) {
-    let position = this._getObjectsFixedPosition(object)
-    let neighbour
-    switch (direction) {
-      case 'bottom':
-        neighbour = this.objects[position.x][position.y - 1][position.z]
-        return (neighbour !== 0 && !neighbour.isFalling)
-      case 'top':
-        neighbour = this.objects[position.x][position.y + 1][position.z]
-        return (neighbour !== 0 && !neighbour.isFalling)
-      case 'left':
-        neighbour = this.objects[position.x + 1][position.y][position.z]
-        return (neighbour !== 0 && !neighbour.isFalling)
-      case 'right':
-        neighbour = this.objects[position.x - 1][position.y][position.z]
-        return (neighbour !== 0 && !neighbour.isFalling)
-      case 'front':
-        neighbour = this.objects[position.x][position.y][position.z + 1]
-        return (neighbour !== 0 && !neighbour.isFalling)
-      case 'back':
-        neighbour = this.objects[position.x][position.y][position.z - 1]
-        return (neighbour !== 0 && !neighbour.isFalling)
     }
   }
 
@@ -212,40 +184,6 @@ class Monolith {
     let intersects = this.raycaster.intersectObjects(this.intersectableObjects)
     intersects.forEach((object) => {
       object.object.mouseDown()
-    })
-  }
-
-  _checkIfObjectShouldFall (object) {
-    let position = this._getObjectsFixedPosition(object)
-    if (object !== 0) {
-      if (position.y > 0 && (this.objects[position.x][position.y - 1][position.z].isFalling || this.objects[position.x][position.y - 1][position.z] === 0)) {
-        return true
-      }
-    }
-    return false
-  }
-
-  /**
-   * If objects are not vertically colliding with other objects - make them fall
-   * The objects will not fall beneath the ground position (y === 0)
-   */
-  _makeObjectsFall (acceleration) {
-    this.objectsWhichShouldFall.forEach((object, index) => {
-      let positionBefore = this._getObjectsFixedPosition(object)
-      if (object !== 0 && this._checkIfObjectIsWithinRenderDistance(object)) {
-        if (!this._checkCollision(object, 'bottom')) {
-          object.velocity += acceleration
-          object.position.y -= object.velocity
-        } else {
-          object.position.y = Math.ceil(object.position.y)
-          object.velocity = 0
-          object.isFalling = false
-          this.objectsWhichShouldFall.splice(index, 1)
-        }
-        let positionAfter = this._getObjectsFixedPosition(object)
-        this.objects[positionBefore.x][Math.round(positionBefore.y)][positionBefore.z] = 0
-        this.objects[positionAfter.x][Math.round(positionAfter.y)][positionAfter.z] = Object.assign({}, object)
-      }
     })
   }
 
@@ -285,21 +223,19 @@ class Monolith {
     }
   }
 
-  _render () {
-    this.renderer.render(this.scene, this.camera)
+  _animate (time) {
+    this._updateMeshPositions()
+
+    if (time && this.lastTime) {
+      var dt = time - this.lastTime
+      this.world.step(this.fixedTimeStep, dt / 1000, this.maxSubSteps)
+    }
+    this._render()
+    this.lastTime = time
+    requestAnimationFrame(this._animate)
   }
 
-  _create3DArray (sizeX, sizeY, sizeZ) {
-    let array = []
-    for (let x = 0; x < sizeX; x++) {
-      array[x] = []
-      for (let y = 0; y < sizeY; y++) {
-        array[x][y] = []
-        for (let z = 0; z < sizeZ; z++) {
-          array[x][y][z] = 0
-        }
-      }
-    }
-    return array
+  _render () {
+    this.renderer.render(this.scene, this.camera)
   }
 }

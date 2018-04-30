@@ -36,17 +36,23 @@ var Monolith = function () {
 
     this.settings = settings;
     this.intersectableObjects = [];
-    this.objects = this._create3DArray(this.settings.sizeX, this.settings.sizeY, this.settings.sizeZ);
-    this.objectsWhichShouldFall = [];
     this.referenceObject = {};
     // Three.js
     this.scene = new THREE.Scene();
     this.aspect = window.innerWidth / window.innerHeight;
-    this.geometry = new THREE.BoxGeometry(1, 1, 1);
+    this.geometry = new THREE.BoxGeometry(3, 1, 3);
     this.camera = new THREE.OrthographicCamera(-20 * this.aspect, 20 * this.aspect, 20, -20, 1, 1000);
-    this.renderer = new THREE.WebGLRenderer();
+    this.renderer = new THREE.WebGLRenderer({ antialias: true });
     this.raycaster = new THREE.Raycaster();
     this.intersectedObject = {};
+
+    // Cannon.js
+    this.bodies = [];
+    this.meshes = [];
+    this.fixedTimeStep = 1 / 60;
+    this.maxSubSteps = 3;
+    this.groundMaterial = new CANNON.Material();
+    this.meshMaterial = new CANNON.Material();
 
     this._animate = this._animate.bind(this);
   }
@@ -65,6 +71,18 @@ var Monolith = function () {
       this.renderer.shadowMap.enabled = true;
       document.body.appendChild(this.renderer.domElement);
 
+      // Cannon.js
+
+      this.world = new CANNON.World();
+      this.world.gravity.set(0, -9.81, 0);
+      this._addGround();
+
+      // Create contact material behaviour
+      var materialToGroundContact = new CANNON.ContactMaterial(this.groundMaterial, this.meshMaterial, { friction: 0.6, restitution: 0.0 });
+      var materialToMaterialContact = new CANNON.ContactMaterial(this.meshMaterial, this.meshMaterial, { friction: 0.6, restitution: 0.0 });
+      this.world.addContactMaterial(materialToGroundContact);
+      this.world.addContactMaterial(materialToMaterialContact);
+
       window.addEventListener('mousedown', function (e) {
         return _this.mouseDown(e);
       });
@@ -72,6 +90,24 @@ var Monolith = function () {
         return _this.mouseMove(e);
       });
       requestAnimationFrame(this._animate);
+    }
+  }, {
+    key: '_addGround',
+    value: function _addGround() {
+      // Physics
+      var shape = new CANNON.Plane();
+      var body = new CANNON.Body({ mass: 0, material: this.groundMaterial });
+      body.addShape(shape);
+      body.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
+      this.world.addBody(body);
+      this.bodies.push(body);
+
+      // Graphics
+      var geometry = new THREE.PlaneGeometry(100, 100, 1, 1);
+      var mesh = new THREE.Mesh(geometry, new THREE.MeshLambertMaterial({ color: this.settings.backgroundColor }));
+      mesh.quaternion.setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2);
+      this.scene.add(mesh);
+      this.meshes.push(mesh);
     }
   }, {
     key: '_addLights',
@@ -90,10 +126,11 @@ var Monolith = function () {
     value: function createBlock(color) {
       var w = this.settings.blockWidth;
       var h = this.settings.blockHeight;
+
+      // Graphics
       var block = new THREE.Mesh(new THREE.CubeGeometry(w, h, w), new THREE.MeshLambertMaterial({ color: color }));
+      this.meshes.push(block);
       block.defaultColor = color;
-      block.velocity = 0;
-      block.inMotion = false;
       return block;
     }
   }, {
@@ -101,18 +138,18 @@ var Monolith = function () {
     value: function placeObject(object, x, y, z) {
       var w = this.settings.blockWidth;
       var h = this.settings.blockHeight;
-      object.position.x = -x * w;
-      object.position.y = y * h;
-      object.position.z = -z * w;
-      this.objects[x][y][z] = object;
+
       if (typeof object.mouseDown === 'undefined') {
         object.mouseDown = function () {};
       }
 
-      if (this._checkIfObjectShouldFall(object)) {
-        object.isFalling = true;
-        this.objectsWhichShouldFall.push(object);
-      }
+      // Physics
+      var shape = new CANNON.Box(new CANNON.Vec3(0.5, 0.5, 0.5));
+      var body = new CANNON.Body({ mass: 5, material: this.meshMaterial });
+      body.addShape(shape);
+      body.position.set(-x * w, y * h, -z * w);
+      this.world.addBody(body);
+      this.bodies.push(body);
 
       this.intersectableObjects.push(object);
       this.scene.add(object);
@@ -138,48 +175,31 @@ var Monolith = function () {
           break;
       }
 
-      if (!this._checkCollision(object, direction) && !object.inMotion) {
-        for (var i = 0; i < 40; i++) {
-          setTimeout(function () {
-            switch (direction) {
-              case 'right':
-                object.position.x += 0.025 * object.geometry.parameters.width;
-                break;
-              case 'left':
-                object.position.x -= 0.025 * object.geometry.parameters.width;
-                break;
-              case 'front':
-                object.position.z -= 0.025 * object.geometry.parameters.width;
-                break;
-              case 'back':
-                object.position.z += 0.025 * object.geometry.parameters.width;
-                break;
-            }
-          }, i * 1);
-        }
+      for (var i = 0; i < 40; i++) {
+        setTimeout(function () {
+          switch (direction) {
+            case 'right':
+              object.position.x += 0.025 * object.geometry.parameters.width;
+              break;
+            case 'left':
+              object.position.x -= 0.025 * object.geometry.parameters.width;
+              break;
+            case 'front':
+              object.position.z -= 0.025 * object.geometry.parameters.width;
+              break;
+            case 'back':
+              object.position.z += 0.025 * object.geometry.parameters.width;
+              break;
+          }
+        }, i * 1);
       }
     }
   }, {
-    key: '_updateObjectsPositionInMatrix',
-    value: function _updateObjectsPositionInMatrix(object, positionBefore) {
-      var positionAfter = this._getObjectsFixedPosition(object);
-      this.objects[positionAfter.x][positionAfter.y][positionAfter.z] = Object.assign({}, this.objects[positionBefore.x][positionBefore.y][positionBefore.z]);
-      this.objects[positionBefore.x][positionBefore.y][positionBefore.z] = 0;
-      for (var y = 1; y < this.settings.sizeY - positionBefore.y; y++) {
-        if (this.objects[positionBefore.x][positionBefore.y + y][positionBefore.z] !== 0) {
-          var objectToCheck = this.objects[positionBefore.x][positionBefore.y + y][positionBefore.z];
-          if (this._checkIfObjectShouldFall(objectToCheck)) {
-            objectToCheck.isFalling = true;
-            this.objectsWhichShouldFall.push(objectToCheck);
-          }
-        }
-      }
-      if (this._checkIfObjectShouldFall(object)) {
-        object.isFalling = true;
-        this.objectsWhichShouldFall.push(object);
-      }
-      if (object.cameraAttached) {
-        this.smoothlySetCameraPosition(object.position.x + 100, object.position.y + 100, object.position.z + 100);
+    key: '_updateMeshPositions',
+    value: function _updateMeshPositions() {
+      for (var i = 0; i < this.meshes.length; i++) {
+        this.meshes[i].position.copy(this.bodies[i].position);
+        this.meshes[i].quaternion.copy(this.bodies[i].quaternion);
       }
     }
   }, {
@@ -188,60 +208,10 @@ var Monolith = function () {
       var _this2 = this;
 
       object.move = function (direction) {
-        var positionBefore = _this2._getObjectsFixedPosition(object);
-        var blockMoved = false;
-        if (!object.inMotion && object.velocity === 0) {
-          _this2._moveObjectInCertainDirection(object, direction);
-          blockMoved = true;
-          object.inMotion = true;
-          if (blockMoved) {
-            setTimeout(function () {
-              _this2._updateObjectsPositionInMatrix(object, positionBefore);
-            }, 40 * 2);
-          }
-          object.inMotion = false;
-        }
+        _this2._moveObjectInCertainDirection(object, direction);
         object.position.x = Math.round(object.position.x);
         object.position.z = Math.round(object.position.z);
       };
-    }
-  }, {
-    key: '_animate',
-    value: function _animate() {
-      this._render();
-      this._makeObjectsFall(this.settings.gravity);
-      requestAnimationFrame(this._animate);
-    }
-
-    /**
-     * Check collision with specified object and its neighbour at specified direction
-     */
-
-  }, {
-    key: '_checkCollision',
-    value: function _checkCollision(object, direction) {
-      var position = this._getObjectsFixedPosition(object);
-      var neighbour = void 0;
-      switch (direction) {
-        case 'bottom':
-          neighbour = this.objects[position.x][position.y - 1][position.z];
-          return neighbour !== 0 && !neighbour.isFalling;
-        case 'top':
-          neighbour = this.objects[position.x][position.y + 1][position.z];
-          return neighbour !== 0 && !neighbour.isFalling;
-        case 'left':
-          neighbour = this.objects[position.x + 1][position.y][position.z];
-          return neighbour !== 0 && !neighbour.isFalling;
-        case 'right':
-          neighbour = this.objects[position.x - 1][position.y][position.z];
-          return neighbour !== 0 && !neighbour.isFalling;
-        case 'front':
-          neighbour = this.objects[position.x][position.y][position.z + 1];
-          return neighbour !== 0 && !neighbour.isFalling;
-        case 'back':
-          neighbour = this.objects[position.x][position.y][position.z - 1];
-          return neighbour !== 0 && !neighbour.isFalling;
-      }
     }
   }, {
     key: 'mouseMove',
@@ -273,46 +243,6 @@ var Monolith = function () {
       });
     }
   }, {
-    key: '_checkIfObjectShouldFall',
-    value: function _checkIfObjectShouldFall(object) {
-      var position = this._getObjectsFixedPosition(object);
-      if (object !== 0) {
-        if (position.y > 0 && (this.objects[position.x][position.y - 1][position.z].isFalling || this.objects[position.x][position.y - 1][position.z] === 0)) {
-          return true;
-        }
-      }
-      return false;
-    }
-
-    /**
-     * If objects are not vertically colliding with other objects - make them fall
-     * The objects will not fall beneath the ground position (y === 0)
-     */
-
-  }, {
-    key: '_makeObjectsFall',
-    value: function _makeObjectsFall(acceleration) {
-      var _this3 = this;
-
-      this.objectsWhichShouldFall.forEach(function (object, index) {
-        var positionBefore = _this3._getObjectsFixedPosition(object);
-        if (object !== 0 && _this3._checkIfObjectIsWithinRenderDistance(object)) {
-          if (!_this3._checkCollision(object, 'bottom')) {
-            object.velocity += acceleration;
-            object.position.y -= object.velocity;
-          } else {
-            object.position.y = Math.ceil(object.position.y);
-            object.velocity = 0;
-            object.isFalling = false;
-            _this3.objectsWhichShouldFall.splice(index, 1);
-          }
-          var positionAfter = _this3._getObjectsFixedPosition(object);
-          _this3.objects[positionBefore.x][Math.round(positionBefore.y)][positionBefore.z] = 0;
-          _this3.objects[positionAfter.x][Math.round(positionAfter.y)][positionAfter.z] = Object.assign({}, object);
-        }
-      });
-    }
-  }, {
     key: '_checkIfObjectIsWithinRenderDistance',
     value: function _checkIfObjectIsWithinRenderDistance(object) {
       var position = this._getObjectsFixedPosition(object);
@@ -334,7 +264,7 @@ var Monolith = function () {
   }, {
     key: 'smoothlySetCameraPosition',
     value: function smoothlySetCameraPosition(x, y, z) {
-      var _this4 = this;
+      var _this3 = this;
 
       var translationX = x - this.camera.position.x;
       var translationY = y - this.camera.position.y;
@@ -342,31 +272,29 @@ var Monolith = function () {
       var frames = 100;
       for (var i = 0; i < frames; i++) {
         setTimeout(function () {
-          _this4.camera.position.x += translationX / frames;
-          _this4.camera.position.y += translationY / frames;
-          _this4.camera.position.z += translationZ / frames;
+          _this3.camera.position.x += translationX / frames;
+          _this3.camera.position.y += translationY / frames;
+          _this3.camera.position.z += translationZ / frames;
         }, i * 1);
       }
+    }
+  }, {
+    key: '_animate',
+    value: function _animate(time) {
+      this._updateMeshPositions();
+
+      if (time && this.lastTime) {
+        var dt = time - this.lastTime;
+        this.world.step(this.fixedTimeStep, dt / 1000, this.maxSubSteps);
+      }
+      this._render();
+      this.lastTime = time;
+      requestAnimationFrame(this._animate);
     }
   }, {
     key: '_render',
     value: function _render() {
       this.renderer.render(this.scene, this.camera);
-    }
-  }, {
-    key: '_create3DArray',
-    value: function _create3DArray(sizeX, sizeY, sizeZ) {
-      var array = [];
-      for (var x = 0; x < sizeX; x++) {
-        array[x] = [];
-        for (var y = 0; y < sizeY; y++) {
-          array[x][y] = [];
-          for (var z = 0; z < sizeZ; z++) {
-            array[x][y][z] = 0;
-          }
-        }
-      }
-      return array;
     }
   }]);
   return Monolith;

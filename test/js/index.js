@@ -1,7 +1,7 @@
 var monolith = new Monolith({
-  sizeX: 40,
-  sizeY: 40,
-  sizeZ: 40,
+  sizeX: 10,
+  sizeY: 10,
+  sizeZ: 20,
   backgroundColor: 'rgb(53,12,63)',
   blockWidth: 3,
   blockHeight: 1,
@@ -11,8 +11,8 @@ var monolith = new Monolith({
 
 monolith.init()
 
-for (let x = 0; x < 40; x++) {
-  for (let z = 0; z < 40; z++) {
+for (let x = 0; x < 10; x++) {
+  for (let z = 0; z < 10; z++) {
     monolith.placeObject(monolith.createBlock(0xaaaaaa), x, 0, z)
     if (Math.round(Math.random() * 8) === 1) {
       monolith.placeObject(monolith.createBlock(0x555555), x, 5, z)
@@ -30,12 +30,12 @@ player.mouseDown = () => {
   player.position.y += 3
 }
 
-monolith.placeObject(monolith.createBlock(0x44adde), 10, 9, 10)
-monolith.placeObject(monolith.createBlock(0x44adde), 10, 12, 10)
+monolith.placeObject(monolith.createBlock(0x44adde), 5, 9, 5)
+monolith.placeObject(monolith.createBlock(0x44adde), 5, 12, 5)
 
 monolith.attachMovementControls(player)
 monolith.attachCamera(player)
-monolith.placeObject(player, 10, 6, 10)
+monolith.placeObject(player, 5, 6, 5)
 
 
 window.addEventListener('keydown', (event) => {
