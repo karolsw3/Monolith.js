@@ -11,8 +11,8 @@ var monolith = new Monolith({
 
 monolith.init()
 
-for (let x = 0; x < 35; x++) {
-  for (let z = 0; z < 35; z++) {
+for (let x = 0; x < 40; x++) {
+  for (let z = 0; z < 40; z++) {
     monolith.placeObject(monolith.createBlock(0xaaaaaa), x, 0, z)
     if (Math.round(Math.random() * 8) === 1) {
       monolith.placeObject(monolith.createBlock(0x555555), x, 5, z)
@@ -27,7 +27,7 @@ for (let x = 0; x < 35; x++) {
 
 let player = monolith.createBlock(0x00033)
 player.mouseDown = () => {
-  player.position.y += 10
+  player.position.y += 3
 }
 
 monolith.placeObject(monolith.createBlock(0x44adde), 10, 9, 10)
