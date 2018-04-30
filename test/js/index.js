@@ -6,14 +6,14 @@ var monolith = new Monolith({
   blockWidth: 3,
   blockHeight: 1,
   renderDistance: 4,
-  gravity: 0.00981
+  gravity: 9.81
 })
 
 monolith.init()
 
 for (let x = 0; x < 10; x++) {
   for (let z = 0; z < 10; z++) {
-    monolith.placeObject(monolith.createBlock(0xaaaaaa), x, 0, z)
+    monolith.placeObject(monolith.createBlock(0xaaaaaa), x, 4, z)
     if (Math.round(Math.random() * 8) === 1) {
       monolith.placeObject(monolith.createBlock(0x555555), x, 5, z)
     }
@@ -21,6 +21,7 @@ for (let x = 0; x < 10; x++) {
       monolith.placeObject(monolith.createBlock(0xaa55f4), x, 7, z)
       monolith.placeObject(monolith.createBlock(0xbcdef3), x, 8, z)
       monolith.placeObject(monolith.createBlock(0x44adde), x, 9, z)
+      monolith.placeObject(monolith.createBlock(0xffadff), x, 10, z)
     }
   }
 }
