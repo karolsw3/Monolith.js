@@ -40,7 +40,7 @@ var Monolith = function () {
     // Three.js
     this.scene = new THREE.Scene();
     this.aspect = window.innerWidth / window.innerHeight;
-    this.geometry = new THREE.BoxGeometry(1, 1, 1, 10, 10);
+    this.geometry = new THREE.BoxGeometry(3, 1, 3, 10, 10);
     this.camera = new THREE.OrthographicCamera(-20 * this.aspect, 20 * this.aspect, 20, -20, 1, 1000);
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
     this.raycaster = new THREE.Raycaster();
@@ -75,26 +75,24 @@ var Monolith = function () {
       // Cannon.js
 
       this.world = new CANNON.World();
+      this.world.broadphase = new CANNON.NaiveBroadphase();
+      this.world.solver.iterations = 30;
       this.world.gravity.set(0, -this.settings.gravity, 0);
       this._addGround();
 
       // Create contact material behaviour
       var materialToGroundContact = new CANNON.ContactMaterial(this.groundMaterial, this.meshMaterial, {
-        friction: 1,
+        friction: 0.9,
         restitution: 0,
-        contactEquationStiffness: 1e5,
-        contactEquationRelaxation: 3,
-        frictionEquationStiffness: 1e8,
-        frictionEquationRegularizationTime: 3
+        contactEquationStiffness: 9e6,
+        contactEquationRelaxation: 4
       });
 
       var materialToMaterialContact = new CANNON.ContactMaterial(this.meshMaterial, this.meshMaterial, {
-        friction: 1,
+        friction: 55,
         restitution: 0,
-        contactEquationStiffness: 1e99,
-        contactEquationRelaxation: 3,
-        frictionEquationStiffness: 1e834,
-        frictionEquationRegularizationTime: 3
+        contactEquationStiffness: 9e9,
+        contactEquationRelaxation: 2
       });
 
       this.world.addContactMaterial(materialToGroundContact);
@@ -142,6 +140,8 @@ var Monolith = function () {
   }, {
     key: 'createBlock',
     value: function createBlock(color) {
+      var mass = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 0;
+
       var w = this.settings.blockWidth;
       var h = this.settings.blockHeight;
 
@@ -149,6 +149,7 @@ var Monolith = function () {
       var block = new THREE.Mesh(new THREE.CubeGeometry(w, h, w), new THREE.MeshLambertMaterial({ color: color }));
       this.meshes.push(block);
       block.defaultColor = color;
+      block.mass = mass;
       return block;
     }
   }, {
@@ -162,10 +163,11 @@ var Monolith = function () {
       }
 
       // Physics
-      var shape = new CANNON.Box(new CANNON.Vec3(0.5 * w, 0.5 * h, 0.5 * w));
-      var body = new CANNON.Body({ mass: 5, material: this.meshMaterial });
+      var shape = new CANNON.Box(new CANNON.Vec3(-0.48 * w, 0.5 * h, -0.48 * w));
+      var body = new CANNON.Body({ mass: object.mass, material: this.meshMaterial });
       body.addShape(shape);
       body.position.set(-x * w, y * h, -z * w);
+      body.angularDamping = 0;
       this.world.addBody(body);
       this.bodies.push(body);
 
@@ -216,8 +218,10 @@ var Monolith = function () {
     key: '_updateMeshPositions',
     value: function _updateMeshPositions() {
       for (var i = 0; i < this.meshes.length; i++) {
-        this.meshes[i].position.copy(this.bodies[i].position);
-        this.meshes[i].quaternion.copy(this.bodies[i].quaternion);
+        if (this.bodies[i].sleepState !== 2) {
+          this.meshes[i].position.copy(this.bodies[i].position);
+          this.meshes[i].quaternion.copy(this.bodies[i].quaternion);
+        }
       }
     }
   }, {
