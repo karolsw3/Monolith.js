@@ -21,13 +21,14 @@ class Monolith {
     this.meshMaterial = new CANNON.Material()
 
     this._animate = this._animate.bind(this)
+    this._onWindowResize = this._onWindowResize.bind(this)
   }
 
   init () {
     this.scene.background = new THREE.Color(this.settings.backgroundColor)
     this.camera.position.set(this.settings.blockWidth, this.settings.blockWidth, this.settings.blockWidth)
     this.camera.lookAt(this.scene.position)
-    this.camera.position.y = this.settings.sizeY
+    this.camera.position.y = 20
     this._addLights()
     this.renderer.setSize(window.innerWidth, window.innerHeight)
     this.renderer.shadowMap.enabled = true
@@ -44,14 +45,18 @@ class Monolith {
       friction: 1,
       restitution: 0,
       contactEquationStiffness: 1e5,
-      contactEquationRelaxation: 20
+      contactEquationRelaxation: 3,
+      frictionEquationStiffness: 1e8,
+      frictionEquationRegularizationTime: 3
     })
 
     let materialToMaterialContact = new CANNON.ContactMaterial(this.meshMaterial, this.meshMaterial, {
       friction: 1,
       restitution: 0,
-      contactEquationStiffness: 1e5,
-      contactEquationRelaxation: 20
+      contactEquationStiffness: 1e99,
+      contactEquationRelaxation: 3,
+      frictionEquationStiffness: 1e834,
+      frictionEquationRegularizationTime: 3
     })
 
     this.world.addContactMaterial(materialToGroundContact)
@@ -59,6 +64,7 @@ class Monolith {
 
     window.addEventListener('mousedown', e => this.mouseDown(e))
     window.addEventListener('mousemove', e => this.mouseMove(e))
+    window.addEventListener( 'resize', this._onWindowResize, false)
     requestAnimationFrame(this._animate)
   }
 
@@ -69,15 +75,14 @@ class Monolith {
     body.addShape(shape)
     body.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2)
     this.world.addBody(body)
-    this.bodies.push(body)
+  }
 
-    // Graphics
-    let geometry = new THREE.PlaneGeometry(100, 100, 1, 1)
-    let mesh = new THREE.Mesh(geometry, new THREE.MeshLambertMaterial({color: this.settings.backgroundColor}))
-    mesh.quaternion.setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2)
-    this.scene.add(mesh)
-    this.meshes.push(mesh)
-}
+  _onWindowResize () {
+    this.camera.left = -20 * window.innerWidth / window.innerHeight
+    this.camera.right = 20 * window.innerWidth / window.innerHeight
+    this.camera.updateProjectionMatrix()
+    this.renderer.setSize(window.innerWidth, window.innerHeight)
+  }
 
   _addLights () {
     this.scene.add(new THREE.AmbientLight(0xbbbbbb))
@@ -242,6 +247,7 @@ class Monolith {
       var dt = time - this.lastTime
       this.world.step(this.fixedTimeStep, dt / 1000, this.maxSubSteps)
     }
+
     this._render()
     this.lastTime = time
     requestAnimationFrame(this._animate)

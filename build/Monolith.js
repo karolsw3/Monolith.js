@@ -55,6 +55,7 @@ var Monolith = function () {
     this.meshMaterial = new CANNON.Material();
 
     this._animate = this._animate.bind(this);
+    this._onWindowResize = this._onWindowResize.bind(this);
   }
 
   createClass(Monolith, [{
@@ -65,7 +66,7 @@ var Monolith = function () {
       this.scene.background = new THREE.Color(this.settings.backgroundColor);
       this.camera.position.set(this.settings.blockWidth, this.settings.blockWidth, this.settings.blockWidth);
       this.camera.lookAt(this.scene.position);
-      this.camera.position.y = this.settings.sizeY;
+      this.camera.position.y = 20;
       this._addLights();
       this.renderer.setSize(window.innerWidth, window.innerHeight);
       this.renderer.shadowMap.enabled = true;
@@ -82,14 +83,18 @@ var Monolith = function () {
         friction: 1,
         restitution: 0,
         contactEquationStiffness: 1e5,
-        contactEquationRelaxation: 20
+        contactEquationRelaxation: 3,
+        frictionEquationStiffness: 1e8,
+        frictionEquationRegularizationTime: 3
       });
 
       var materialToMaterialContact = new CANNON.ContactMaterial(this.meshMaterial, this.meshMaterial, {
         friction: 1,
         restitution: 0,
-        contactEquationStiffness: 1e5,
-        contactEquationRelaxation: 20
+        contactEquationStiffness: 1e99,
+        contactEquationRelaxation: 3,
+        frictionEquationStiffness: 1e834,
+        frictionEquationRegularizationTime: 3
       });
 
       this.world.addContactMaterial(materialToGroundContact);
@@ -101,6 +106,7 @@ var Monolith = function () {
       window.addEventListener('mousemove', function (e) {
         return _this.mouseMove(e);
       });
+      window.addEventListener('resize', this._onWindowResize, false);
       requestAnimationFrame(this._animate);
     }
   }, {
@@ -112,14 +118,14 @@ var Monolith = function () {
       body.addShape(shape);
       body.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
       this.world.addBody(body);
-      this.bodies.push(body);
-
-      // Graphics
-      var geometry = new THREE.PlaneGeometry(100, 100, 1, 1);
-      var mesh = new THREE.Mesh(geometry, new THREE.MeshLambertMaterial({ color: this.settings.backgroundColor }));
-      mesh.quaternion.setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2);
-      this.scene.add(mesh);
-      this.meshes.push(mesh);
+    }
+  }, {
+    key: '_onWindowResize',
+    value: function _onWindowResize() {
+      this.camera.left = -20 * window.innerWidth / window.innerHeight;
+      this.camera.right = 20 * window.innerWidth / window.innerHeight;
+      this.camera.updateProjectionMatrix();
+      this.renderer.setSize(window.innerWidth, window.innerHeight);
     }
   }, {
     key: '_addLights',
@@ -299,6 +305,7 @@ var Monolith = function () {
         var dt = time - this.lastTime;
         this.world.step(this.fixedTimeStep, dt / 1000, this.maxSubSteps);
       }
+
       this._render();
       this.lastTime = time;
       requestAnimationFrame(this._animate);
