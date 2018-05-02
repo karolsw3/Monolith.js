@@ -17,7 +17,6 @@ class Monolith {
     this.meshes = []
     this.fixedTimeStep = 1 / 60
     this.maxSubSteps = 3
-    this.groundMaterial = new CANNON.Material()
     this.meshMaterial = new CANNON.Material()
 
     this._animate = this._animate.bind(this)
@@ -38,27 +37,8 @@ class Monolith {
 
     this.world = new CANNON.World()
     this.world.broadphase = new CANNON.NaiveBroadphase()
-    this.world.solver.iterations = 30
+    this.world.solver.iterations = 10
     this.world.gravity.set(0, -this.settings.gravity, 0)
-    this._addGround()
-
-    // Create contact material behaviour
-    let materialToGroundContact = new CANNON.ContactMaterial(this.groundMaterial, this.meshMaterial, {
-      friction: Infinity,
-      restitution: 0,
-      contactEquationStiffness: 9e6,
-      contactEquationRelaxation: 4
-    })
-
-    let materialToMaterialContact = new CANNON.ContactMaterial(this.meshMaterial, this.meshMaterial, {
-      friction: Infinity,
-      restitution: 0,
-      contactEquationStiffness: Infinity,
-      contactEquationRelaxation: 2
-    })
-
-    this.world.addContactMaterial(materialToGroundContact)
-    this.world.addContactMaterial(materialToMaterialContact)
 
     window.addEventListener('mousedown', e => this.mouseDown(e))
     window.addEventListener('mousemove', e => this.mouseMove(e))
@@ -78,15 +58,6 @@ class Monolith {
     }, 100)
 
     requestAnimationFrame(this._animate)
-  }
-
-  _addGround () {
-    // Physics
-    let shape = new CANNON.Plane()
-    let body = new CANNON.Body({ mass: 0, material: this.groundMaterial })
-    body.addShape(shape)
-    body.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2)
-    this.world.addBody(body)
   }
 
   _onWindowResize () {
@@ -193,7 +164,7 @@ class Monolith {
         setTimeout(() => {
           object.body.inMove = false
           object.body.horizontalCollision = false
-        }, 380)
+        }, 100)
       }
     }
   }
@@ -213,7 +184,7 @@ class Monolith {
     }
 
     object.body.addEventListener('collide', (e) => {
-      if (Math.round(e.body.position.y) === Math.round(object.body.position.y)) {
+      if (Math.round(e.body.position.y) === Math.ceil(object.body.position.y)) {
         object.body.horizontalCollision = true
       }
     }, false)
