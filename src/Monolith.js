@@ -44,16 +44,16 @@ class Monolith {
 
     // Create contact material behaviour
     let materialToGroundContact = new CANNON.ContactMaterial(this.groundMaterial, this.meshMaterial, {
-      friction: 0.9,
+      friction: Infinity,
       restitution: 0,
       contactEquationStiffness: 9e6,
       contactEquationRelaxation: 4
     })
 
     let materialToMaterialContact = new CANNON.ContactMaterial(this.meshMaterial, this.meshMaterial, {
-      friction: 55,
+      friction: Infinity,
       restitution: 0,
-      contactEquationStiffness: 9e9,
+      contactEquationStiffness: Infinity,
       contactEquationRelaxation: 2
     })
 
@@ -62,7 +62,21 @@ class Monolith {
 
     window.addEventListener('mousedown', e => this.mouseDown(e))
     window.addEventListener('mousemove', e => this.mouseMove(e))
-    window.addEventListener( 'resize', this._onWindowResize, false)
+    window.addEventListener('resize', this._onWindowResize, false)
+
+    setInterval(() => {
+      for (var i = 0; i < this.meshes.length; i++) {
+        if (!this.bodies[i].inMove) {
+          if (Math.round(this.bodies[i].position.x) !== this.bodies[i].position.x) {
+            this.bodies[i].position.x = Math.round(this.bodies[i].position.x / this.settings.blockWidth) * this.settings.blockWidth
+          }
+          if (Math.round(this.bodies[i].position.z) !== this.bodies[i].position.z) {
+            this.bodies[i].position.z = Math.round(this.bodies[i].position.z / this.settings.blockWidth) * this.settings.blockWidth
+          }
+        }
+      }
+    }, 1000)
+
     requestAnimationFrame(this._animate)
   }
 
@@ -102,6 +116,14 @@ class Monolith {
     this.meshes.push(block)
     block.defaultColor = color
     block.mass = mass
+
+    // Physics
+    var shape = new CANNON.Box(new CANNON.Vec3(-0.48 * w, 0.5 * h, -0.48 * w))
+    var body = new CANNON.Body({ mass: mass, material: this.meshMaterial })
+    body.addShape(shape)
+    body.angularDamping = 0.9999999999999
+    body.fixedRotation = true
+    block.body = body
     return block
   }
 
@@ -113,14 +135,9 @@ class Monolith {
       object.mouseDown = () => {}
     }
 
-    // Physics
-    var shape = new CANNON.Box(new CANNON.Vec3(-0.48 * w, 0.5 * h, -0.48 * w))
-    var body = new CANNON.Body({ mass: object.mass, material: this.meshMaterial })
-    body.addShape(shape)
-    body.position.set(-x * w, y * h, -z * w)
-    body.angularDamping = 0
-    this.world.addBody(body)
-    this.bodies.push(body)
+    object.body.position.set(-x * w, y * h, -z * w)
+    this.world.addBody(object.body)
+    this.bodies.push(object.body)
 
     this.intersectableObjects.push(object)
     this.scene.add(object)
@@ -133,41 +150,44 @@ class Monolith {
   }
 
   _moveObjectInCertainDirection (object, direction) {
-    switch (direction) {
-      case 'backward':
-        direction = 'back'
-        break
-      case 'forward':
-        direction = 'front'
-        break
-    }
+    if (!object.body.inMove) {
+      object.body.inMove = true
+      object.body.position.y += this.settings.blockHeight
+      for (let i = 0; i < 600; i++) {
+        setTimeout(() => {
+          switch (direction) {
+            case 'right':
+              object.body.position.x += this.settings.blockWidth / 3 * 0.0048
+              break
+            case 'left':
+              object.body.position.x -= this.settings.blockWidth / 3 * 0.0048
+              break
+            case 'forward':
+              object.body.position.z -= this.settings.blockWidth / 3 * 0.0048
+              break
+            case 'backward':
+              object.body.position.z += this.settings.blockWidth / 3 * 0.0048
+              break
+          }
+        }, 0.5 * i)
 
-    for (let i = 0; i < 40; i++) {
-      setTimeout(() => {
-        switch (direction) {
-          case 'right':
-            object.position.x += (0.025 * object.geometry.parameters.width)
-            break
-          case 'left':
-            object.position.x -= (0.025 * object.geometry.parameters.width)
-            break
-          case 'front':
-            object.position.z -= (0.025 * object.geometry.parameters.width)
-            break
-          case 'back':
-            object.position.z += (0.025 * object.geometry.parameters.width)
-            break
-        }
-      }, i * 1)
+        setTimeout(() => {
+          object.body.position.x = Math.round(object.body.position.x)
+          object.body.velocity.y = 0
+          object.body.position.z = Math.round(object.body.position.z)
+        }, 300)
+
+        setTimeout(() => {
+          object.body.inMove = false
+        }, 800)
+      }
     }
   }
 
   _updateMeshPositions () {
     for (var i = 0; i < this.meshes.length; i++) {
-      if (this.bodies[i].sleepState !== 2) {
-        this.meshes[i].position.copy(this.bodies[i].position)
-        this.meshes[i].quaternion.copy(this.bodies[i].quaternion)
-      }
+      this.meshes[i].position.copy(this.bodies[i].position)
+      this.meshes[i].quaternion.copy(this.bodies[i].quaternion)     
     }
   }
 

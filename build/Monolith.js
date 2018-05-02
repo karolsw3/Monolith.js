@@ -82,16 +82,16 @@ var Monolith = function () {
 
       // Create contact material behaviour
       var materialToGroundContact = new CANNON.ContactMaterial(this.groundMaterial, this.meshMaterial, {
-        friction: 0.9,
+        friction: Infinity,
         restitution: 0,
         contactEquationStiffness: 9e6,
         contactEquationRelaxation: 4
       });
 
       var materialToMaterialContact = new CANNON.ContactMaterial(this.meshMaterial, this.meshMaterial, {
-        friction: 55,
+        friction: Infinity,
         restitution: 0,
-        contactEquationStiffness: 9e9,
+        contactEquationStiffness: Infinity,
         contactEquationRelaxation: 2
       });
 
@@ -105,6 +105,20 @@ var Monolith = function () {
         return _this.mouseMove(e);
       });
       window.addEventListener('resize', this._onWindowResize, false);
+
+      setInterval(function () {
+        for (var i = 0; i < _this.meshes.length; i++) {
+          if (!_this.bodies[i].inMove) {
+            if (Math.round(_this.bodies[i].position.x) !== _this.bodies[i].position.x) {
+              _this.bodies[i].position.x = Math.round(_this.bodies[i].position.x / _this.settings.blockWidth) * _this.settings.blockWidth;
+            }
+            if (Math.round(_this.bodies[i].position.z) !== _this.bodies[i].position.z) {
+              _this.bodies[i].position.z = Math.round(_this.bodies[i].position.z / _this.settings.blockWidth) * _this.settings.blockWidth;
+            }
+          }
+        }
+      }, 1000);
+
       requestAnimationFrame(this._animate);
     }
   }, {
@@ -150,6 +164,14 @@ var Monolith = function () {
       this.meshes.push(block);
       block.defaultColor = color;
       block.mass = mass;
+
+      // Physics
+      var shape = new CANNON.Box(new CANNON.Vec3(-0.48 * w, 0.5 * h, -0.48 * w));
+      var body = new CANNON.Body({ mass: mass, material: this.meshMaterial });
+      body.addShape(shape);
+      body.angularDamping = 0.9999999999999;
+      body.fixedRotation = true;
+      block.body = body;
       return block;
     }
   }, {
@@ -162,14 +184,9 @@ var Monolith = function () {
         object.mouseDown = function () {};
       }
 
-      // Physics
-      var shape = new CANNON.Box(new CANNON.Vec3(-0.48 * w, 0.5 * h, -0.48 * w));
-      var body = new CANNON.Body({ mass: object.mass, material: this.meshMaterial });
-      body.addShape(shape);
-      body.position.set(-x * w, y * h, -z * w);
-      body.angularDamping = 0;
-      this.world.addBody(body);
-      this.bodies.push(body);
+      object.body.position.set(-x * w, y * h, -z * w);
+      this.world.addBody(object.body);
+      this.bodies.push(object.body);
 
       this.intersectableObjects.push(object);
       this.scene.add(object);
@@ -186,51 +203,56 @@ var Monolith = function () {
   }, {
     key: '_moveObjectInCertainDirection',
     value: function _moveObjectInCertainDirection(object, direction) {
-      switch (direction) {
-        case 'backward':
-          direction = 'back';
-          break;
-        case 'forward':
-          direction = 'front';
-          break;
-      }
+      var _this2 = this;
 
-      for (var i = 0; i < 40; i++) {
-        setTimeout(function () {
-          switch (direction) {
-            case 'right':
-              object.position.x += 0.025 * object.geometry.parameters.width;
-              break;
-            case 'left':
-              object.position.x -= 0.025 * object.geometry.parameters.width;
-              break;
-            case 'front':
-              object.position.z -= 0.025 * object.geometry.parameters.width;
-              break;
-            case 'back':
-              object.position.z += 0.025 * object.geometry.parameters.width;
-              break;
-          }
-        }, i * 1);
+      if (!object.body.inMove) {
+        object.body.inMove = true;
+        object.body.position.y += this.settings.blockHeight;
+        for (var i = 0; i < 600; i++) {
+          setTimeout(function () {
+            switch (direction) {
+              case 'right':
+                object.body.position.x += _this2.settings.blockWidth / 3 * 0.0048;
+                break;
+              case 'left':
+                object.body.position.x -= _this2.settings.blockWidth / 3 * 0.0048;
+                break;
+              case 'forward':
+                object.body.position.z -= _this2.settings.blockWidth / 3 * 0.0048;
+                break;
+              case 'backward':
+                object.body.position.z += _this2.settings.blockWidth / 3 * 0.0048;
+                break;
+            }
+          }, 0.5 * i);
+
+          setTimeout(function () {
+            object.body.position.x = Math.round(object.body.position.x);
+            object.body.velocity.y = 0;
+            object.body.position.z = Math.round(object.body.position.z);
+          }, 300);
+
+          setTimeout(function () {
+            object.body.inMove = false;
+          }, 800);
+        }
       }
     }
   }, {
     key: '_updateMeshPositions',
     value: function _updateMeshPositions() {
       for (var i = 0; i < this.meshes.length; i++) {
-        if (this.bodies[i].sleepState !== 2) {
-          this.meshes[i].position.copy(this.bodies[i].position);
-          this.meshes[i].quaternion.copy(this.bodies[i].quaternion);
-        }
+        this.meshes[i].position.copy(this.bodies[i].position);
+        this.meshes[i].quaternion.copy(this.bodies[i].quaternion);
       }
     }
   }, {
     key: 'attachMovementControls',
     value: function attachMovementControls(object) {
-      var _this2 = this;
+      var _this3 = this;
 
       object.move = function (direction) {
-        _this2._moveObjectInCertainDirection(object, direction);
+        _this3._moveObjectInCertainDirection(object, direction);
         object.position.x = Math.round(object.position.x);
         object.position.z = Math.round(object.position.z);
       };
@@ -286,7 +308,7 @@ var Monolith = function () {
   }, {
     key: 'smoothlySetCameraPosition',
     value: function smoothlySetCameraPosition(x, y, z) {
-      var _this3 = this;
+      var _this4 = this;
 
       var translationX = x - this.camera.position.x;
       var translationY = y - this.camera.position.y;
@@ -294,9 +316,9 @@ var Monolith = function () {
       var frames = 100;
       for (var i = 0; i < frames; i++) {
         setTimeout(function () {
-          _this3.camera.position.x += translationX / frames;
-          _this3.camera.position.y += translationY / frames;
-          _this3.camera.position.z += translationZ / frames;
+          _this4.camera.position.x += translationX / frames;
+          _this4.camera.position.y += translationY / frames;
+          _this4.camera.position.z += translationZ / frames;
         }, i * 1);
       }
     }
