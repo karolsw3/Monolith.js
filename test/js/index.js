@@ -3,24 +3,24 @@ var monolith = new Monolith({
   sizeY: 8,
   sizeZ: 20,
   backgroundColor: 'rgb(53,12,63)',
-  blockWidth: 4,
-  blockHeight: 2,
+  blockWidth: 3,
+  blockHeight: 1,
   renderDistance: 4,
-  gravity: 9.82
+  gravity: 19.82
 })
 
 monolith.init()
 
 for (let x = 0; x < 8; x++) {
   for (let z = 0; z < 8; z++) {
-    monolith.placeObject(monolith.createBlock(0x777f79, 700), x, 1, z)
-    for (let i = 2; i < Math.round(Math.random() * 3 + 1); i++) {
+    monolith.placeObject(monolith.createBlock(0x777f79, 0), x, 1, z)
+    for (let i = 2; i < Math.round(Math.random() * 3 + 3); i++) {
       monolith.placeObject(monolith.createBlock(0x338749, 700), x, i, z)
     }
   }
 }
 
-let player = monolith.createBlock(0x00033, 0.1)
+let player = monolith.createBlock(0x44ff33, 0.1)
 player.mouseDown = () => {
   player.body.position.y += 10
 }

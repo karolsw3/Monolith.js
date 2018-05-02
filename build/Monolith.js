@@ -117,7 +117,7 @@ var Monolith = function () {
             }
           }
         }
-      }, 1000);
+      }, 100);
 
       requestAnimationFrame(this._animate);
     }
@@ -169,7 +169,7 @@ var Monolith = function () {
       var shape = new CANNON.Box(new CANNON.Vec3(-0.48 * w, 0.5 * h, -0.48 * w));
       var body = new CANNON.Body({ mass: mass, material: this.meshMaterial });
       body.addShape(shape);
-      body.angularDamping = 0.9999999999999;
+      body.angularDamping = 1;
       body.fixedRotation = true;
       block.body = body;
       return block;
@@ -207,34 +207,48 @@ var Monolith = function () {
 
       if (!object.body.inMove) {
         object.body.inMove = true;
-        object.body.position.y += this.settings.blockHeight;
-        for (var i = 0; i < 600; i++) {
+        object.body.position.y += this.settings.blockHeight * 0.1;
+        object.body.previousPosition = { x: object.body.position.x, y: object.body.position.y, z: object.body.position.z };
+        for (var i = 0; i < 60; i++) {
           setTimeout(function () {
-            switch (direction) {
-              case 'right':
-                object.body.position.x += _this2.settings.blockWidth / 3 * 0.0048;
-                break;
-              case 'left':
-                object.body.position.x -= _this2.settings.blockWidth / 3 * 0.0048;
-                break;
-              case 'forward':
-                object.body.position.z -= _this2.settings.blockWidth / 3 * 0.0048;
-                break;
-              case 'backward':
-                object.body.position.z += _this2.settings.blockWidth / 3 * 0.0048;
-                break;
+            if (!object.body.horizontalCollision) {
+              switch (direction) {
+                case 'right':
+                  object.body.position.x += _this2.settings.blockWidth / 3 * 0.048;
+                  break;
+                case 'left':
+                  object.body.position.x -= _this2.settings.blockWidth / 3 * 0.048;
+                  break;
+                case 'forward':
+                  object.body.position.z -= _this2.settings.blockWidth / 3 * 0.048;
+                  break;
+                case 'backward':
+                  object.body.position.z += _this2.settings.blockWidth / 3 * 0.048;
+                  break;
+              }
+            } else {
+              object.body.position.set(object.body.previousPosition.x, object.body.previousPosition.y, object.body.previousPosition.z);
             }
-          }, 0.5 * i);
+          }, 1 * i);
 
           setTimeout(function () {
-            object.body.position.x = Math.round(object.body.position.x);
             object.body.velocity.y = 0;
+          }, 110);
+
+          setTimeout(function () {
+            if (object.body.horizontalCollision) {
+              object.body.position.set(object.body.previousPosition.x, object.body.previousPosition.y, object.body.previousPosition.z);
+            }
+            object.body.position.x = Math.round(object.body.position.x);
+            object.body.velocity.x = 0;
+            object.body.velocity.z = 0;
             object.body.position.z = Math.round(object.body.position.z);
-          }, 300);
+          }, 81);
 
           setTimeout(function () {
             object.body.inMove = false;
-          }, 800);
+            object.body.horizontalCollision = false;
+          }, 380);
         }
       }
     }
@@ -256,6 +270,12 @@ var Monolith = function () {
         object.position.x = Math.round(object.position.x);
         object.position.z = Math.round(object.position.z);
       };
+
+      object.body.addEventListener('collide', function (e) {
+        if (Math.round(e.body.position.y) === Math.round(object.body.position.y)) {
+          object.body.horizontalCollision = true;
+        }
+      }, false);
     }
   }, {
     key: 'mouseMove',
