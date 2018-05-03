@@ -1,0 +1,63 @@
+{
+	"metadata": {
+		"version": 4.5,
+		"type": "Object",
+		"generator": "Object3D.toJSON"
+	},
+	"geometries": [
+		{
+			"uuid": "AB334F0D-6735-47A2-94A3-29E999F0ACF0",
+			"type": "BoxBufferGeometry",
+			"width": 1,
+			"height": 1,
+			"depth": 1,
+			"widthSegments": 1,
+			"heightSegments": 1,
+			"depthSegments": 1
+		},
+		{
+			"uuid": "383C163A-CB5E-48C1-8945-00EDBBB25375",
+			"type": "BoxBufferGeometry",
+			"width": 1,
+			"height": 1,
+			"depth": 1,
+			"widthSegments": 1,
+			"heightSegments": 1,
+			"depthSegments": 1
+		}],
+	"materials": [
+		{
+			"uuid": "7DDD3101-E8CF-4C2B-A350-2F6CA7389244",
+			"type": "MeshStandardMaterial",
+			"color": 16777215,
+			"roughness": 0.5,
+			"metalness": 0.5,
+			"emissive": 2743072,
+			"depthFunc": 3,
+			"depthTest": true,
+			"depthWrite": true
+		}],
+	"object": {
+		"uuid": "E9BDAA2A-5FFC-4E27-9518-E703C8251AAE",
+		"type": "Group",
+		"name": "Plant",
+		"matrix": [1,0,0,0,0,1,0,0,0,0,1,0,0.007776,-0.013947,0.0645,1],
+		"children": [
+			{
+				"uuid": "E37E0F5A-4E15-4536-9540-A44DE9CC6182",
+				"type": "Mesh",
+				"name": "Box",
+				"matrix": [0.9,0,0,0,0,0.14,0,0,0,0,0.2,0,-0.340446,1.69337,0.088166,1],
+				"geometry": "AB334F0D-6735-47A2-94A3-29E999F0ACF0",
+				"material": "7DDD3101-E8CF-4C2B-A350-2F6CA7389244"
+			},
+			{
+				"uuid": "9B6CCB39-C2E3-455F-A234-0A1267A198D5",
+				"type": "Mesh",
+				"name": "Box",
+				"matrix": [0.18,0,0,0,0,1.74,0,0,0,0,0.2,0,0.023024,0.891073,0.089252,1],
+				"geometry": "383C163A-CB5E-48C1-8945-00EDBBB25375",
+				"material": "7DDD3101-E8CF-4C2B-A350-2F6CA7389244"
+			}]
+	}
+}

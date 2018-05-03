@@ -8,6 +8,7 @@ class Monolith {
     this.referenceObject = {}
     // Three.js
     this.scene = new THREE.Scene()
+    this.loader = new THREE.ObjectLoader()
     this.aspect = window.innerWidth / window.innerHeight
     this.camera = new THREE.OrthographicCamera(-20 * this.aspect, 20 * this.aspect, 20, -20, 1, 1000)
     this.renderer = new THREE.WebGLRenderer({ antialias: true })
@@ -65,6 +66,33 @@ class Monolith {
       mass
     })
     return block
+  }
+
+  _loadObjectJSON (url, onload) {
+    this.loader.load(
+      url,
+      function (object) {
+        onload(object)
+      },
+      function () {},
+      function (err) {
+        console.error(err)
+      }
+    )
+  }
+
+  loadObject (url, x, y, z) {
+    this._loadObjectJSON(url, (object) => {
+      this.scene.add(object)
+      this.meshes.push(object)
+      let shape = new CANNON.Box(new CANNON.Vec3(-0.48 * this.settings.blockWidth, 0.5 * this.settings.blockHeight, -0.48 * this.settings.blockWidth))
+      let body = new CANNON.Body({ mass: 700, material: new CANNON.Material() })
+      body.inMove = false
+      body.position.set(x, y, z)
+      body.addShape(shape)
+      this.bodies.push(body)
+      this.world.addBody(body)
+    })
   }
 
   placeObject (object, x, y, z) {

@@ -163,6 +163,7 @@ var Monolith = function () {
     this.referenceObject = {};
     // Three.js
     this.scene = new THREE.Scene();
+    this.loader = new THREE.ObjectLoader();
     this.aspect = window.innerWidth / window.innerHeight;
     this.camera = new THREE.OrthographicCamera(-20 * this.aspect, 20 * this.aspect, 20, -20, 1, 1000);
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -229,6 +230,32 @@ var Monolith = function () {
         mass: mass
       });
       return block;
+    }
+  }, {
+    key: '_loadObjectJSON',
+    value: function _loadObjectJSON(url, onload) {
+      this.loader.load(url, function (object) {
+        onload(object);
+      }, function () {}, function (err) {
+        console.error(err);
+      });
+    }
+  }, {
+    key: 'loadObject',
+    value: function loadObject(url, x, y, z) {
+      var _this2 = this;
+
+      this._loadObjectJSON(url, function (object) {
+        _this2.scene.add(object);
+        _this2.meshes.push(object);
+        var shape = new CANNON.Box(new CANNON.Vec3(-0.48 * _this2.settings.blockWidth, 0.5 * _this2.settings.blockHeight, -0.48 * _this2.settings.blockWidth));
+        var body = new CANNON.Body({ mass: 700, material: new CANNON.Material() });
+        body.inMove = false;
+        body.position.set(x, y, z);
+        body.addShape(shape);
+        _this2.bodies.push(body);
+        _this2.world.addBody(body);
+      });
     }
   }, {
     key: 'placeObject',
@@ -346,7 +373,7 @@ var Monolith = function () {
   }, {
     key: 'smoothlySetCameraPosition',
     value: function smoothlySetCameraPosition(x, y, z) {
-      var _this2 = this;
+      var _this3 = this;
 
       var translationX = x - this.camera.position.x;
       var translationY = y - this.camera.position.y;
@@ -354,9 +381,9 @@ var Monolith = function () {
       var frames = 100;
       for (var i = 0; i < frames; i++) {
         setTimeout(function () {
-          _this2.camera.position.x += translationX / frames;
-          _this2.camera.position.y += translationY / frames;
-          _this2.camera.position.z += translationZ / frames;
+          _this3.camera.position.x += translationX / frames;
+          _this3.camera.position.y += translationY / frames;
+          _this3.camera.position.z += translationZ / frames;
         }, i * 1);
       }
     }
