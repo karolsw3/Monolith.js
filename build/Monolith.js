@@ -30,6 +30,130 @@ var createClass = function () {
   };
 }();
 
+var inherits = function (subClass, superClass) {
+  if (typeof superClass !== "function" && superClass !== null) {
+    throw new TypeError("Super expression must either be null or a function, not " + typeof superClass);
+  }
+
+  subClass.prototype = Object.create(superClass && superClass.prototype, {
+    constructor: {
+      value: subClass,
+      enumerable: false,
+      writable: true,
+      configurable: true
+    }
+  });
+  if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass;
+};
+
+var possibleConstructorReturn = function (self, call) {
+  if (!self) {
+    throw new ReferenceError("this hasn't been initialised - super() hasn't been called");
+  }
+
+  return call && (typeof call === "object" || typeof call === "function") ? call : self;
+};
+
+var LiveObject = function () {
+  function LiveObject(settings) {
+    classCallCheck(this, LiveObject);
+
+    this.width = settings.width;
+    this.height = settings.height;
+    this.horizontalCollision = false;
+
+    // Graphics
+    var object = new THREE.Mesh(settings.geometry, settings.material);
+    object.mass = settings.mass;
+    this.mesh = object;
+    this.mesh.mouseDown = function () {};
+    this.mesh.defaultColor = settings.color;
+    // Physics
+    this.body = new CANNON.Body({ mass: settings.mass, material: new CANNON.Material() });
+    this.body.inMove = false;
+    this.body.addShape(settings.shape);
+  }
+
+  createClass(LiveObject, [{
+    key: 'attachMovementControls',
+    value: function attachMovementControls() {
+      var _this = this;
+
+      this.body.angularDamping = 1;
+
+      this.body.addEventListener('collide', function (e) {
+        if (Math.round(e.body.position.y) === Math.ceil(_this.body.position.y)) {
+          _this.horizontalCollision = true;
+        }
+      }, false);
+    }
+  }, {
+    key: 'move',
+    value: function move(direction) {
+      var _this2 = this;
+
+      if (!this.body.inMove) {
+        this.body.inMove = true;
+        this.body.position.y += this.height * 0.3;
+        this.body.previousPosition = { x: this.body.position.x, y: this.body.position.y, z: this.body.position.z };
+        for (var i = 0; i < 60; i++) {
+          setTimeout(function () {
+            if (!_this2.horizontalCollision) {
+              switch (direction) {
+                case 'right':
+                  _this2.body.position.x += _this2.width / 3 * 0.048;
+                  break;
+                case 'left':
+                  _this2.body.position.x -= _this2.width / 3 * 0.048;
+                  break;
+                case 'forward':
+                  _this2.body.position.z -= _this2.width / 3 * 0.048;
+                  break;
+                case 'backward':
+                  _this2.body.position.z += _this2.width / 3 * 0.048;
+                  break;
+              }
+            } else {
+              _this2.body.position.set(_this2.body.previousPosition.x, _this2.body.previousPosition.y, _this2.body.previousPosition.z);
+            }
+          }, 1 * i);
+
+          setTimeout(function () {
+            _this2.body.velocity.y = 0;
+          }, 110);
+
+          setTimeout(function () {
+            if (_this2.horizontalCollision) {
+              _this2.body.position.set(_this2.body.previousPosition.x, _this2.body.previousPosition.y, _this2.body.previousPosition.z);
+            }
+            _this2.body.position.x = Math.round(_this2.body.position.x);
+            _this2.body.velocity.x = 0;
+            _this2.body.velocity.z = 0;
+            _this2.body.position.z = Math.round(_this2.body.position.z);
+          }, 81);
+
+          setTimeout(function () {
+            _this2.body.inMove = false;
+            _this2.horizontalCollision = false;
+          }, 100);
+        }
+      }
+    }
+  }]);
+  return LiveObject;
+}();
+
+var Player = function (_LiveObject) {
+  inherits(Player, _LiveObject);
+
+  function Player(settings) {
+    classCallCheck(this, Player);
+    return possibleConstructorReturn(this, (Player.__proto__ || Object.getPrototypeOf(Player)).call(this));
+  }
+
+  return Player;
+}(LiveObject);
+
 var Monolith = function () {
   function Monolith(settings) {
     classCallCheck(this, Monolith);
@@ -40,7 +164,6 @@ var Monolith = function () {
     // Three.js
     this.scene = new THREE.Scene();
     this.aspect = window.innerWidth / window.innerHeight;
-    this.geometry = new THREE.BoxGeometry(3, 1, 3, 10, 10);
     this.camera = new THREE.OrthographicCamera(-20 * this.aspect, 20 * this.aspect, 20, -20, 1, 1000);
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
     this.raycaster = new THREE.Raycaster();
@@ -51,10 +174,10 @@ var Monolith = function () {
     this.meshes = [];
     this.fixedTimeStep = 1 / 60;
     this.maxSubSteps = 3;
-    this.meshMaterial = new CANNON.Material();
 
     this._animate = this._animate.bind(this);
     this._onWindowResize = this._onWindowResize.bind(this);
+    this._normalizeBodiesPositions = this._normalizeBodiesPositions.bind(this);
   }
 
   createClass(Monolith, [{
@@ -75,7 +198,7 @@ var Monolith = function () {
 
       this.world = new CANNON.World();
       this.world.broadphase = new CANNON.NaiveBroadphase();
-      this.world.solver.iterations = 10;
+      this.world.solver.iterations = 12;
       this.world.gravity.set(0, -this.settings.gravity, 0);
 
       window.addEventListener('mousedown', function (e) {
@@ -86,20 +209,40 @@ var Monolith = function () {
       });
       window.addEventListener('resize', this._onWindowResize, false);
 
-      setInterval(function () {
-        for (var i = 0; i < _this.meshes.length; i++) {
-          if (!_this.bodies[i].inMove) {
-            if (Math.round(_this.bodies[i].position.x) !== _this.bodies[i].position.x) {
-              _this.bodies[i].position.x = Math.round(_this.bodies[i].position.x / _this.settings.blockWidth) * _this.settings.blockWidth;
-            }
-            if (Math.round(_this.bodies[i].position.z) !== _this.bodies[i].position.z) {
-              _this.bodies[i].position.z = Math.round(_this.bodies[i].position.z / _this.settings.blockWidth) * _this.settings.blockWidth;
-            }
-          }
-        }
-      }, 100);
+      setInterval(this._normalizeBodiesPositions, 100);
 
       requestAnimationFrame(this._animate);
+    }
+  }, {
+    key: 'createBlock',
+    value: function createBlock(color, mass) {
+      var geometry = new THREE.CubeGeometry(this.settings.blockWidth, this.settings.blockHeight, this.settings.blockWidth);
+      var material = new THREE.MeshLambertMaterial({ color: color });
+      var shape = new CANNON.Box(new CANNON.Vec3(-0.48 * this.settings.blockWidth, 0.5 * this.settings.blockHeight, -0.48 * this.settings.blockWidth));
+      var block = new LiveObject({
+        geometry: geometry,
+        material: material,
+        shape: shape,
+        color: color,
+        width: this.settings.blockWidth,
+        height: this.settings.blockHeight,
+        mass: mass
+      });
+      return block;
+    }
+  }, {
+    key: 'placeObject',
+    value: function placeObject(object, x, y, z) {
+      var w = this.settings.blockWidth;
+      var h = this.settings.blockHeight;
+
+      object.body.position.set(-x * w, y * h, -z * w);
+      this.world.addBody(object.body);
+      this.meshes.push(object.mesh);
+      this.bodies.push(object.body);
+
+      this.intersectableObjects.push(object.mesh);
+      this.scene.add(object.mesh);
     }
   }, {
     key: '_onWindowResize',
@@ -122,44 +265,18 @@ var Monolith = function () {
       this.scene.add(spotLightLeft);
     }
   }, {
-    key: 'createBlock',
-    value: function createBlock(color) {
-      var mass = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 0;
-
-      var w = this.settings.blockWidth;
-      var h = this.settings.blockHeight;
-
-      // Graphics
-      var block = new THREE.Mesh(new THREE.CubeGeometry(w, h, w), new THREE.MeshLambertMaterial({ color: color }));
-      this.meshes.push(block);
-      block.defaultColor = color;
-      block.mass = mass;
-
-      // Physics
-      var shape = new CANNON.Box(new CANNON.Vec3(-0.48 * w, 0.5 * h, -0.48 * w));
-      var body = new CANNON.Body({ mass: mass, material: this.meshMaterial });
-      body.addShape(shape);
-      body.angularDamping = 1;
-      body.fixedRotation = true;
-      block.body = body;
-      return block;
-    }
-  }, {
-    key: 'placeObject',
-    value: function placeObject(object, x, y, z) {
-      var w = this.settings.blockWidth;
-      var h = this.settings.blockHeight;
-
-      if (typeof object.mouseDown === 'undefined') {
-        object.mouseDown = function () {};
+    key: '_normalizeBodiesPositions',
+    value: function _normalizeBodiesPositions() {
+      for (var i = 0; i < this.bodies.length; i++) {
+        if (!this.bodies[i].inMove) {
+          if (Math.round(this.bodies[i].position.x) !== this.bodies[i].position.x) {
+            this.bodies[i].position.x = Math.round(this.bodies[i].position.x / this.settings.blockWidth) * this.settings.blockWidth;
+          }
+          if (Math.round(this.bodies[i].position.z) !== this.bodies[i].position.z) {
+            this.bodies[i].position.z = Math.round(this.bodies[i].position.z / this.settings.blockWidth) * this.settings.blockWidth;
+          }
+        }
       }
-
-      object.body.position.set(-x * w, y * h, -z * w);
-      this.world.addBody(object.body);
-      this.bodies.push(object.body);
-
-      this.intersectableObjects.push(object);
-      this.scene.add(object);
     }
 
     // Let the camera follow specified object!
@@ -171,81 +288,12 @@ var Monolith = function () {
       this.referenceObject = object;
     }
   }, {
-    key: '_moveObjectInCertainDirection',
-    value: function _moveObjectInCertainDirection(object, direction) {
-      var _this2 = this;
-
-      if (!object.body.inMove) {
-        object.body.inMove = true;
-        object.body.position.y += this.settings.blockHeight * 0.1;
-        object.body.previousPosition = { x: object.body.position.x, y: object.body.position.y, z: object.body.position.z };
-        for (var i = 0; i < 60; i++) {
-          setTimeout(function () {
-            if (!object.body.horizontalCollision) {
-              switch (direction) {
-                case 'right':
-                  object.body.position.x += _this2.settings.blockWidth / 3 * 0.048;
-                  break;
-                case 'left':
-                  object.body.position.x -= _this2.settings.blockWidth / 3 * 0.048;
-                  break;
-                case 'forward':
-                  object.body.position.z -= _this2.settings.blockWidth / 3 * 0.048;
-                  break;
-                case 'backward':
-                  object.body.position.z += _this2.settings.blockWidth / 3 * 0.048;
-                  break;
-              }
-            } else {
-              object.body.position.set(object.body.previousPosition.x, object.body.previousPosition.y, object.body.previousPosition.z);
-            }
-          }, 1 * i);
-
-          setTimeout(function () {
-            object.body.velocity.y = 0;
-          }, 110);
-
-          setTimeout(function () {
-            if (object.body.horizontalCollision) {
-              object.body.position.set(object.body.previousPosition.x, object.body.previousPosition.y, object.body.previousPosition.z);
-            }
-            object.body.position.x = Math.round(object.body.position.x);
-            object.body.velocity.x = 0;
-            object.body.velocity.z = 0;
-            object.body.position.z = Math.round(object.body.position.z);
-          }, 81);
-
-          setTimeout(function () {
-            object.body.inMove = false;
-            object.body.horizontalCollision = false;
-          }, 100);
-        }
-      }
-    }
-  }, {
     key: '_updateMeshPositions',
     value: function _updateMeshPositions() {
       for (var i = 0; i < this.meshes.length; i++) {
         this.meshes[i].position.copy(this.bodies[i].position);
         this.meshes[i].quaternion.copy(this.bodies[i].quaternion);
       }
-    }
-  }, {
-    key: 'attachMovementControls',
-    value: function attachMovementControls(object) {
-      var _this3 = this;
-
-      object.move = function (direction) {
-        _this3._moveObjectInCertainDirection(object, direction);
-        object.position.x = Math.round(object.position.x);
-        object.position.z = Math.round(object.position.z);
-      };
-
-      object.body.addEventListener('collide', function (e) {
-        if (Math.round(e.body.position.y) === Math.ceil(object.body.position.y)) {
-          object.body.horizontalCollision = true;
-        }
-      }, false);
     }
   }, {
     key: 'mouseMove',
@@ -298,7 +346,7 @@ var Monolith = function () {
   }, {
     key: 'smoothlySetCameraPosition',
     value: function smoothlySetCameraPosition(x, y, z) {
-      var _this4 = this;
+      var _this2 = this;
 
       var translationX = x - this.camera.position.x;
       var translationY = y - this.camera.position.y;
@@ -306,9 +354,9 @@ var Monolith = function () {
       var frames = 100;
       for (var i = 0; i < frames; i++) {
         setTimeout(function () {
-          _this4.camera.position.x += translationX / frames;
-          _this4.camera.position.y += translationY / frames;
-          _this4.camera.position.z += translationZ / frames;
+          _this2.camera.position.x += translationX / frames;
+          _this2.camera.position.y += translationY / frames;
+          _this2.camera.position.z += translationZ / frames;
         }, i * 1);
       }
     }

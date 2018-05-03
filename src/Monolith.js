@@ -1,3 +1,6 @@
+import LiveObject from './modules/LiveObject.js'
+import Player from './modules/Player.js'
+
 class Monolith {
   constructor (settings) {
     this.settings = settings
@@ -6,7 +9,6 @@ class Monolith {
     // Three.js
     this.scene = new THREE.Scene()
     this.aspect = window.innerWidth / window.innerHeight
-    this.geometry = new THREE.BoxGeometry(3, 1, 3, 10, 10)
     this.camera = new THREE.OrthographicCamera(-20 * this.aspect, 20 * this.aspect, 20, -20, 1, 1000)
     this.renderer = new THREE.WebGLRenderer({ antialias: true })
     this.raycaster = new THREE.Raycaster()
@@ -17,10 +19,10 @@ class Monolith {
     this.meshes = []
     this.fixedTimeStep = 1 / 60
     this.maxSubSteps = 3
-    this.meshMaterial = new CANNON.Material()
 
     this._animate = this._animate.bind(this)
     this._onWindowResize = this._onWindowResize.bind(this)
+    this._normalizeBodiesPositions = this._normalizeBodiesPositions.bind(this)
   }
 
   init () {
@@ -37,27 +39,45 @@ class Monolith {
 
     this.world = new CANNON.World()
     this.world.broadphase = new CANNON.NaiveBroadphase()
-    this.world.solver.iterations = 10
+    this.world.solver.iterations = 12
     this.world.gravity.set(0, -this.settings.gravity, 0)
 
     window.addEventListener('mousedown', e => this.mouseDown(e))
     window.addEventListener('mousemove', e => this.mouseMove(e))
     window.addEventListener('resize', this._onWindowResize, false)
 
-    setInterval(() => {
-      for (var i = 0; i < this.meshes.length; i++) {
-        if (!this.bodies[i].inMove) {
-          if (Math.round(this.bodies[i].position.x) !== this.bodies[i].position.x) {
-            this.bodies[i].position.x = Math.round(this.bodies[i].position.x / this.settings.blockWidth) * this.settings.blockWidth
-          }
-          if (Math.round(this.bodies[i].position.z) !== this.bodies[i].position.z) {
-            this.bodies[i].position.z = Math.round(this.bodies[i].position.z / this.settings.blockWidth) * this.settings.blockWidth
-          }
-        }
-      }
-    }, 100)
+    setInterval(this._normalizeBodiesPositions, 100)
 
     requestAnimationFrame(this._animate)
+  }
+
+  createBlock (color, mass) {
+    let geometry = new THREE.CubeGeometry(this.settings.blockWidth, this.settings.blockHeight, this.settings.blockWidth)
+    let material = new THREE.MeshLambertMaterial({color})
+    let shape = new CANNON.Box(new CANNON.Vec3(-0.48 * this.settings.blockWidth, 0.5 * this.settings.blockHeight, -0.48 * this.settings.blockWidth))
+    let block = new LiveObject({
+      geometry,
+      material,
+      shape,
+      color,
+      width: this.settings.blockWidth,
+      height: this.settings.blockHeight,
+      mass
+    })
+    return block
+  }
+
+  placeObject (object, x, y, z) {
+    let w = this.settings.blockWidth
+    let h = this.settings.blockHeight
+
+    object.body.position.set(-x * w, y * h, -z * w)
+    this.world.addBody(object.body)
+    this.meshes.push(object.mesh)
+    this.bodies.push(object.body)
+
+    this.intersectableObjects.push(object.mesh)
+    this.scene.add(object.mesh)
   }
 
   _onWindowResize () {
@@ -78,40 +98,17 @@ class Monolith {
     this.scene.add(spotLightLeft)
   }
 
-  createBlock (color, mass = 0) {
-    let w = this.settings.blockWidth
-    let h = this.settings.blockHeight
-
-    // Graphics
-    let block = new THREE.Mesh(new THREE.CubeGeometry(w, h, w), new THREE.MeshLambertMaterial({color: color}))
-    this.meshes.push(block)
-    block.defaultColor = color
-    block.mass = mass
-
-    // Physics
-    var shape = new CANNON.Box(new CANNON.Vec3(-0.48 * w, 0.5 * h, -0.48 * w))
-    var body = new CANNON.Body({ mass: mass, material: this.meshMaterial })
-    body.addShape(shape)
-    body.angularDamping = 1
-    body.fixedRotation = true
-    block.body = body
-    return block
-  }
-
-  placeObject (object, x, y, z) {
-    let w = this.settings.blockWidth
-    let h = this.settings.blockHeight
-
-    if (typeof object.mouseDown === 'undefined') {
-      object.mouseDown = () => {}
+  _normalizeBodiesPositions () {
+    for (var i = 0; i < this.bodies.length; i++) {
+      if (!this.bodies[i].inMove) {
+        if (Math.round(this.bodies[i].position.x) !== this.bodies[i].position.x) {
+          this.bodies[i].position.x = Math.round(this.bodies[i].position.x / this.settings.blockWidth) * this.settings.blockWidth
+        }
+        if (Math.round(this.bodies[i].position.z) !== this.bodies[i].position.z) {
+          this.bodies[i].position.z = Math.round(this.bodies[i].position.z / this.settings.blockWidth) * this.settings.blockWidth
+        }
+      }
     }
-
-    object.body.position.set(-x * w, y * h, -z * w)
-    this.world.addBody(object.body)
-    this.bodies.push(object.body)
-
-    this.intersectableObjects.push(object)
-    this.scene.add(object)
   }
 
   // Let the camera follow specified object!
@@ -120,74 +117,11 @@ class Monolith {
     this.referenceObject = object
   }
 
-  _moveObjectInCertainDirection (object, direction) {
-    if (!object.body.inMove) {
-      object.body.inMove = true
-      object.body.position.y += this.settings.blockHeight * 0.1
-      object.body.previousPosition = {x: object.body.position.x, y: object.body.position.y, z: object.body.position.z}
-      for (let i = 0; i < 60; i++) {
-        setTimeout(() => {
-          if (!object.body.horizontalCollision) {
-            switch (direction) {
-              case 'right':
-                object.body.position.x += this.settings.blockWidth / 3 * 0.048
-                break
-              case 'left':
-                object.body.position.x -= this.settings.blockWidth / 3 * 0.048
-                break
-              case 'forward':
-                object.body.position.z -= this.settings.blockWidth / 3 * 0.048
-                break
-              case 'backward':
-                object.body.position.z += this.settings.blockWidth / 3 * 0.048
-                break
-            }
-          } else {
-            object.body.position.set(object.body.previousPosition.x, object.body.previousPosition.y, object.body.previousPosition.z)
-          }
-        }, 1 * i)
-
-        setTimeout(() => {
-          object.body.velocity.y = 0
-        }, 110)
-
-        setTimeout(() => {
-          if (object.body.horizontalCollision) { 
-            object.body.position.set(object.body.previousPosition.x, object.body.previousPosition.y, object.body.previousPosition.z)
-          }
-          object.body.position.x = Math.round(object.body.position.x)
-          object.body.velocity.x = 0
-          object.body.velocity.z = 0
-          object.body.position.z = Math.round(object.body.position.z)
-        }, 81)
-
-        setTimeout(() => {
-          object.body.inMove = false
-          object.body.horizontalCollision = false
-        }, 100)
-      }
-    }
-  }
-
   _updateMeshPositions () {
     for (var i = 0; i < this.meshes.length; i++) {
       this.meshes[i].position.copy(this.bodies[i].position)
-      this.meshes[i].quaternion.copy(this.bodies[i].quaternion)     
+      this.meshes[i].quaternion.copy(this.bodies[i].quaternion)
     }
-  }
-
-  attachMovementControls (object) {
-    object.move = (direction) => {
-      this._moveObjectInCertainDirection(object, direction)
-      object.position.x = Math.round(object.position.x)
-      object.position.z = Math.round(object.position.z)
-    }
-
-    object.body.addEventListener('collide', (e) => {
-      if (Math.round(e.body.position.y) === Math.ceil(object.body.position.y)) {
-        object.body.horizontalCollision = true
-      }
-    }, false)
   }
 
   mouseMove (event) {
