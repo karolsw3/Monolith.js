@@ -8,8 +8,8 @@ class RetardedPhysicsEngine {
     this.objectsWhichShouldFall = []
   }
 
-  addObject (object) {
-    this.objects.push(object)
+  addObject (object, position) {
+    this.objects[position.x][position.y][position.z] = object
   }
 
   checkAllObjectsIfTheyShouldFall () {
