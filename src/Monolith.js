@@ -1,5 +1,4 @@
 import LiveObject from './modules/LiveObject.js'
-import Player from './modules/Player.js'
 import Utils from './modules/Utils.js'
 import RetardedPhysicsEngine from './modules/RetardedPhysicsEngine.js'
 
