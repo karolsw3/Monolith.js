@@ -142,27 +142,14 @@ var Player = function (_LiveObject) {
   return Player;
 }(LiveObject);
 
-var RetardedPhysicsEngine = function () {
-  function RetardedPhysicsEngine(settings) {
-    classCallCheck(this, RetardedPhysicsEngine);
-
-    this.gravity = settings.gravity;
-    this.sizeX = settings.sizeX;
-    this.sizeY = settings.sizeY;
-    this.sizeZ = settings.sizeZ;
-    this.objectsMatrix = this._create3DMatrix(this.sizeX, this.sizeY, this.sizeZ);
-    this.objectsWhichShouldFall = [];
+var Utils = function () {
+  function Utils() {
+    classCallCheck(this, Utils);
   }
 
-  createClass(RetardedPhysicsEngine, [{
-    key: "addObject",
-    value: function addObject(object) {
-      var position = this._getObjectsFixedPosition(object);
-      this.objectsMatrix[position.x][position.y][position.z] = object;
-    }
-  }, {
-    key: "_getObjectsFixedPosition",
-    value: function _getObjectsFixedPosition(object) {
+  createClass(Utils, [{
+    key: "getObjectsFixedPosition",
+    value: function getObjectsFixedPosition(object) {
       var objectX = -Math.round(object.position.x / object.mesh.geometry.parameters.width);
       var objectY = Math.ceil(object.position.y / object.mesh.geometry.parameters.height);
       var objectZ = -Math.round(object.position.z / object.mesh.geometry.parameters.depth);
@@ -172,8 +159,31 @@ var RetardedPhysicsEngine = function () {
         z: objectZ
       };
     }
+  }]);
+  return Utils;
+}();
+
+var RetardedPhysicsEngine = function () {
+  function RetardedPhysicsEngine(settings) {
+    classCallCheck(this, RetardedPhysicsEngine);
+
+    this.utils = new Utils();
+    this.gravity = settings.gravity;
+    this.sizeX = settings.sizeX;
+    this.sizeY = settings.sizeY;
+    this.sizeZ = settings.sizeZ;
+    this.objectsMatrix = this._create3DMatrix(this.sizeX, this.sizeY, this.sizeZ);
+    this.objectsWhichShouldFall = [];
+  }
+
+  createClass(RetardedPhysicsEngine, [{
+    key: 'addObject',
+    value: function addObject(object) {
+      var position = this.utils.getObjectsFixedPosition(object);
+      this.objectsMatrix[position.x][position.y][position.z] = object;
+    }
   }, {
-    key: "checkAllObjectsIfTheyShouldFall",
+    key: 'checkAllObjectsIfTheyShouldFall',
     value: function checkAllObjectsIfTheyShouldFall() {
       for (var x = 0; x < this.sizeX; x++) {
         for (var z = 0; this.sizeZ; z++) {
@@ -182,7 +192,7 @@ var RetardedPhysicsEngine = function () {
       }
     }
   }, {
-    key: "checkIfColumnShouldFall",
+    key: 'checkIfColumnShouldFall',
     value: function checkIfColumnShouldFall(x, z) {
       for (var y = 1; y < this.sizeY; y++) {
         var object = this.objectsMatrix[x][y][z];
@@ -195,7 +205,7 @@ var RetardedPhysicsEngine = function () {
       }
     }
   }, {
-    key: "makeObjectsFall",
+    key: 'makeObjectsFall',
     value: function makeObjectsFall() {
       var _this = this;
 
@@ -226,7 +236,7 @@ var RetardedPhysicsEngine = function () {
       }
     }
   }, {
-    key: "_calculateDistanceValues",
+    key: '_calculateDistanceValues',
     value: function _calculateDistanceValues(startY, endY) {
       var maxDistance = endY - startY;
       var values = [];
@@ -236,7 +246,7 @@ var RetardedPhysicsEngine = function () {
       return values.reverse();
     }
   }, {
-    key: "_create3DMatrix",
+    key: '_create3DMatrix',
     value: function _create3DMatrix(maxX, maxY, maxZ) {
       var matrix = [];
       for (var x = 0; x < maxX; x++) {
@@ -258,6 +268,7 @@ var Monolith = function () {
   function Monolith(settings) {
     classCallCheck(this, Monolith);
 
+    this.utils = new Utils();
     this.settings = settings;
     this.loadedObjects = [];
     this.intersectableObjects = [];
@@ -431,21 +442,9 @@ var Monolith = function () {
   }, {
     key: '_checkIfObjectIsWithinRenderDistance',
     value: function _checkIfObjectIsWithinRenderDistance(object) {
-      var position = this._getObjectsFixedPosition(object);
-      var referencePosition = this._getObjectsFixedPosition(this.referenceObject);
+      var position = this.utils.getObjectsFixedPosition(object);
+      var referencePosition = this.utils.getObjectsFixedPosition(this.referenceObject);
       return position.x > referencePosition.x - this.settings.renderDistance * this.settings.blockWidth && position.x < referencePosition.x + this.settings.renderDistance * this.settings.blockWidth && position.z > referencePosition.z - this.settings.renderDistance * this.settings.blockWidth && position.z < referencePosition.z + this.settings.renderDistance * this.settings.blockWidth;
-    }
-  }, {
-    key: '_getObjectsFixedPosition',
-    value: function _getObjectsFixedPosition(object) {
-      var objectX = -Math.round(object.position.x / object.geometry.parameters.width);
-      var objectY = Math.ceil(object.position.y / object.geometry.parameters.height);
-      var objectZ = -Math.round(object.position.z / object.geometry.parameters.depth);
-      return {
-        x: objectX,
-        y: objectY,
-        z: objectZ
-      };
     }
   }, {
     key: 'smoothlySetCameraPosition',

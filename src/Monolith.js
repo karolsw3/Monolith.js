@@ -1,9 +1,11 @@
 import LiveObject from './modules/LiveObject.js'
 import Player from './modules/Player.js'
+import Utils from './modules/Utils.js'
 import RetardedPhysicsEngine from './modules/RetardedPhysicsEngine.js'
 
 class Monolith {
   constructor (settings) {
+    this.utils = new Utils()
     this.settings = settings
     this.loadedObjects = []
     this.intersectableObjects = []
@@ -153,25 +155,14 @@ class Monolith {
   }
 
   _checkIfObjectIsWithinRenderDistance (object) {
-    let position = this._getObjectsFixedPosition(object)
-    let referencePosition = this._getObjectsFixedPosition(this.referenceObject)
+    let position = this.utils.getObjectsFixedPosition(object)
+    let referencePosition = this.utils.getObjectsFixedPosition(this.referenceObject)
     return (
       position.x > referencePosition.x - this.settings.renderDistance * this.settings.blockWidth &&
       position.x < referencePosition.x + this.settings.renderDistance * this.settings.blockWidth &&
       position.z > referencePosition.z - this.settings.renderDistance * this.settings.blockWidth &&
       position.z < referencePosition.z + this.settings.renderDistance * this.settings.blockWidth
     )
-  }
-
-  _getObjectsFixedPosition (object) {
-    let objectX = -Math.round(object.position.x / object.geometry.parameters.width)
-    let objectY = Math.ceil(object.position.y / object.geometry.parameters.height)
-    let objectZ = -Math.round(object.position.z / object.geometry.parameters.depth)
-    return {
-      x: objectX,
-      y: objectY,
-      z: objectZ
-    }
   }
 
   smoothlySetCameraPosition (x, y, z) {

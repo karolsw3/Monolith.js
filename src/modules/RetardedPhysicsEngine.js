@@ -1,5 +1,8 @@
+import Utils from './Utils.js'
+
 class RetardedPhysicsEngine {
   constructor (settings) {
+    this.utils = new Utils()
     this.gravity = settings.gravity
     this.sizeX = settings.sizeX
     this.sizeY = settings.sizeY
@@ -9,19 +12,8 @@ class RetardedPhysicsEngine {
   }
 
   addObject (object) {
-    let position = this._getObjectsFixedPosition(object)
+    let position = this.utils.getObjectsFixedPosition(object)
     this.objectsMatrix[position.x][position.y][position.z] = object
-  }
-
-  _getObjectsFixedPosition (object) {
-    let objectX = -Math.round(object.position.x / object.mesh.geometry.parameters.width)
-    let objectY = Math.ceil(object.position.y / object.mesh.geometry.parameters.height)
-    let objectZ = -Math.round(object.position.z / object.mesh.geometry.parameters.depth)
-    return {
-      x: objectX,
-      y: objectY,
-      z: objectZ
-    }
   }
 
   checkAllObjectsIfTheyShouldFall () {
