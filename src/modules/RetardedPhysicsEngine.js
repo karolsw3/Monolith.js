@@ -4,12 +4,24 @@ class RetardedPhysicsEngine {
     this.sizeX = settings.sizeX
     this.sizeY = settings.sizeY
     this.sizeZ = settings.sizeZ
-    this.objectsMatrix = this._create3dMatrix(100, 100, 100)
+    this.objectsMatrix = this._create3DMatrix(this.sizeX, this.sizeY, this.sizeZ)
     this.objectsWhichShouldFall = []
   }
 
-  addObject (object, position) {
-    this.objects[position.x][position.y][position.z] = object
+  addObject (object) {
+    let position = this._getObjectsFixedPosition(object)
+    this.objectsMatrix[position.x][position.y][position.z] = object
+  }
+
+  _getObjectsFixedPosition (object) {
+    let objectX = -Math.round(object.position.x / object.mesh.geometry.parameters.width)
+    let objectY = Math.ceil(object.position.y / object.mesh.geometry.parameters.height)
+    let objectZ = -Math.round(object.position.z / object.mesh.geometry.parameters.depth)
+    return {
+      x: objectX,
+      y: objectY,
+      z: objectZ
+    }
   }
 
   checkAllObjectsIfTheyShouldFall () {
@@ -27,10 +39,9 @@ class RetardedPhysicsEngine {
         object.distanceAboveGround = y
         object.previousPosition = {x, y, z}
         this.objectsWhichShouldFall.push(object)
-        return true
+        break
       }
     }
-    return false
   }
 
   makeObjectsFall () {
@@ -45,7 +56,7 @@ class RetardedPhysicsEngine {
 
       setTimeout(() => {
         object.position.y = Math.round(object.position.y)
-        this.objectsMatrix[object.position.x][object.position.y][object.position.z] = object
+        this.objectsMatrix[object.position.x][object.position.y][object.position.z] = object // Consider Object.assign({}, object)
         this.objectsMatrix[object.previousPosition.x][object.previousPosition.y][object.previousPosition.z] = 0
       }, object.distanceAboveGround * this.gravity)
       object.velocity += this.gravity
@@ -61,7 +72,7 @@ class RetardedPhysicsEngine {
     return values.reverse()
   }
 
-  _create3dMatrix (maxX, maxY, maxZ) {
+  _create3DMatrix (maxX, maxY, maxZ) {
     let matrix = []
     for (let x = 0; x < maxX; x++) {
       matrix[x] = []
@@ -72,5 +83,8 @@ class RetardedPhysicsEngine {
         }
       }
     }
+    return matrix
   }
 }
+
+export default RetardedPhysicsEngine

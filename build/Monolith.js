@@ -55,39 +55,27 @@ var possibleConstructorReturn = function (self, call) {
 };
 
 var LiveObject = function () {
-  function LiveObject(settings) {
+  function LiveObject(object) {
+    var _this = this;
+
     classCallCheck(this, LiveObject);
 
-    this.width = settings.width;
-    this.height = settings.height;
+    this.inMove = false;
     this.horizontalCollision = false;
 
     // Graphics
-    var object = new THREE.Mesh(settings.geometry, settings.material);
-    object.mass = settings.mass;
-    this.mesh = object;
+    this.mesh = new THREE.Mesh(object.geometry, object.material);
     this.mesh.mouseDown = function () {};
-    this.mesh.defaultColor = settings.color;
-    // Physics
-    this.body = new CANNON.Body({ mass: settings.mass, material: new CANNON.Material() });
-    this.body.inMove = false;
-    this.body.addShape(settings.shape);
+    this.mesh.defaultColor = this.mesh.material.color;
+    this.position = { x: 0, y: 0, z: 0 };
+    this.position.set = function (x, y, z) {
+      _this.position.x = x;
+      _this.position.y = y;
+      _this.position.z = z;
+    };
   }
 
   createClass(LiveObject, [{
-    key: 'attachMovementControls',
-    value: function attachMovementControls() {
-      var _this = this;
-
-      this.body.angularDamping = 1;
-
-      this.body.addEventListener('collide', function (e) {
-        if (Math.round(e.body.position.y) === Math.ceil(_this.body.position.y)) {
-          _this.horizontalCollision = true;
-        }
-      }, false);
-    }
-  }, {
     key: 'move',
     value: function move(direction) {
       var _this2 = this;
@@ -154,13 +142,128 @@ var Player = function (_LiveObject) {
   return Player;
 }(LiveObject);
 
+var RetardedPhysicsEngine = function () {
+  function RetardedPhysicsEngine(settings) {
+    classCallCheck(this, RetardedPhysicsEngine);
+
+    this.gravity = settings.gravity;
+    this.sizeX = settings.sizeX;
+    this.sizeY = settings.sizeY;
+    this.sizeZ = settings.sizeZ;
+    this.objectsMatrix = this._create3DMatrix(this.sizeX, this.sizeY, this.sizeZ);
+    this.objectsWhichShouldFall = [];
+  }
+
+  createClass(RetardedPhysicsEngine, [{
+    key: "addObject",
+    value: function addObject(object) {
+      var position = this._getObjectsFixedPosition(object);
+      this.objectsMatrix[position.x][position.y][position.z] = object;
+    }
+  }, {
+    key: "_getObjectsFixedPosition",
+    value: function _getObjectsFixedPosition(object) {
+      var objectX = -Math.round(object.position.x / object.mesh.geometry.parameters.width);
+      var objectY = Math.ceil(object.position.y / object.mesh.geometry.parameters.height);
+      var objectZ = -Math.round(object.position.z / object.mesh.geometry.parameters.depth);
+      return {
+        x: objectX,
+        y: objectY,
+        z: objectZ
+      };
+    }
+  }, {
+    key: "checkAllObjectsIfTheyShouldFall",
+    value: function checkAllObjectsIfTheyShouldFall() {
+      for (var x = 0; x < this.sizeX; x++) {
+        for (var z = 0; this.sizeZ; z++) {
+          this.checkIfColumnShouldFall(x, z);
+        }
+      }
+    }
+  }, {
+    key: "checkIfColumnShouldFall",
+    value: function checkIfColumnShouldFall(x, z) {
+      for (var y = 1; y < this.sizeY; y++) {
+        var object = this.objectsMatrix[x][y][z];
+        if (this.objectsMatrix[x][y - 1][z] === 0) {
+          object.distanceAboveGround = y;
+          object.previousPosition = { x: x, y: y, z: z };
+          this.objectsWhichShouldFall.push(object);
+          break;
+        }
+      }
+    }
+  }, {
+    key: "makeObjectsFall",
+    value: function makeObjectsFall() {
+      var _this = this;
+
+      var _loop = function _loop(i) {
+        var object = _this.objectsWhichShouldFall[i];
+        var distanceValues = _this._calculateDistanceValues();
+
+        var _loop2 = function _loop2(repetitions) {
+          setTimeout(function () {
+            object.position.y -= distanceValues[repetitions];
+          }, repetitions * _this.gravity);
+        };
+
+        for (var repetitions = 0; repetitions < object.distanceAboveGround; repetitions++) {
+          _loop2(repetitions);
+        }
+
+        setTimeout(function () {
+          object.position.y = Math.round(object.position.y);
+          _this.objectsMatrix[object.position.x][object.position.y][object.position.z] = object; // Consider Object.assign({}, object)
+          _this.objectsMatrix[object.previousPosition.x][object.previousPosition.y][object.previousPosition.z] = 0;
+        }, object.distanceAboveGround * _this.gravity);
+        object.velocity += _this.gravity;
+      };
+
+      for (var i = 0; i < this.objectsWhichShouldFall.length; i++) {
+        _loop(i);
+      }
+    }
+  }, {
+    key: "_calculateDistanceValues",
+    value: function _calculateDistanceValues(startY, endY) {
+      var maxDistance = endY - startY;
+      var values = [];
+      for (var i = 0; i < 20; i++) {
+        values.push(maxDistance / Math.pow(2, i));
+      }
+      return values.reverse();
+    }
+  }, {
+    key: "_create3DMatrix",
+    value: function _create3DMatrix(maxX, maxY, maxZ) {
+      var matrix = [];
+      for (var x = 0; x < maxX; x++) {
+        matrix[x] = [];
+        for (var y = 0; y < maxY; y++) {
+          matrix[x][y] = [];
+          for (var z = 0; z < maxZ; z++) {
+            matrix[x][y][z] = 0;
+          }
+        }
+      }
+      return matrix;
+    }
+  }]);
+  return RetardedPhysicsEngine;
+}();
+
 var Monolith = function () {
   function Monolith(settings) {
     classCallCheck(this, Monolith);
 
     this.settings = settings;
+    this.loadedObjects = [];
     this.intersectableObjects = [];
     this.referenceObject = {};
+    this.gravity = settings.gravity;
+    this.meshes = [];
     // Three.js
     this.scene = new THREE.Scene();
     this.loader = new THREE.ObjectLoader();
@@ -170,15 +273,16 @@ var Monolith = function () {
     this.raycaster = new THREE.Raycaster();
     this.intersectedObject = {};
 
-    // Cannon.js
-    this.bodies = [];
-    this.meshes = [];
-    this.fixedTimeStep = 1 / 60;
-    this.maxSubSteps = 3;
+    // RetardedPhysicsEngine.js
+    this.retardedPhysicsEngine = new RetardedPhysicsEngine({
+      gravity: this.gravity,
+      sizeX: 100,
+      sizeY: 100,
+      sizeZ: 100
+    });
 
     this._animate = this._animate.bind(this);
     this._onWindowResize = this._onWindowResize.bind(this);
-    this._normalizeBodiesPositions = this._normalizeBodiesPositions.bind(this);
   }
 
   createClass(Monolith, [{
@@ -195,13 +299,6 @@ var Monolith = function () {
       this.renderer.shadowMap.enabled = true;
       document.body.appendChild(this.renderer.domElement);
 
-      // Cannon.js
-
-      this.world = new CANNON.World();
-      this.world.broadphase = new CANNON.NaiveBroadphase();
-      this.world.solver.iterations = 12;
-      this.world.gravity.set(0, -this.settings.gravity, 0);
-
       window.addEventListener('mousedown', function (e) {
         return _this.mouseDown(e);
       });
@@ -210,30 +307,22 @@ var Monolith = function () {
       });
       window.addEventListener('resize', this._onWindowResize, false);
 
-      setInterval(this._normalizeBodiesPositions, 100);
-
       requestAnimationFrame(this._animate);
     }
   }, {
     key: 'createBlock',
-    value: function createBlock(color, mass) {
+    value: function createBlock(color) {
       var geometry = new THREE.CubeGeometry(this.settings.blockWidth, this.settings.blockHeight, this.settings.blockWidth);
       var material = new THREE.MeshLambertMaterial({ color: color });
-      var shape = new CANNON.Box(new CANNON.Vec3(-0.48 * this.settings.blockWidth, 0.5 * this.settings.blockHeight, -0.48 * this.settings.blockWidth));
-      var block = new LiveObject({
-        geometry: geometry,
-        material: material,
-        shape: shape,
-        color: color,
-        width: this.settings.blockWidth,
-        height: this.settings.blockHeight,
-        mass: mass
-      });
+      var object = {};
+      object.geometry = geometry;
+      object.material = material;
+      var block = new LiveObject(object);
       return block;
     }
   }, {
-    key: '_loadObjectJSON',
-    value: function _loadObjectJSON(url, onload) {
+    key: '_getObjectJSON',
+    value: function _getObjectJSON(url, onload) {
       this.loader.load(url, function (object) {
         onload(object);
       }, function () {}, function (err) {
@@ -241,20 +330,29 @@ var Monolith = function () {
       });
     }
   }, {
-    key: 'loadObject',
-    value: function loadObject(url, x, y, z) {
+    key: 'loadObjects',
+    value: function loadObjects(objects) {
       var _this2 = this;
 
-      this._loadObjectJSON(url, function (object) {
-        _this2.scene.add(object);
-        _this2.meshes.push(object);
-        var shape = new CANNON.Box(new CANNON.Vec3(-0.48 * _this2.settings.blockWidth, 0.5 * _this2.settings.blockHeight, -0.48 * _this2.settings.blockWidth));
-        var body = new CANNON.Body({ mass: 700, material: new CANNON.Material() });
-        body.inMove = false;
-        body.position.set(x, y, z);
-        body.addShape(shape);
-        _this2.bodies.push(body);
-        _this2.world.addBody(body);
+      var _loop = function _loop(i) {
+        _this2._getObjectJSON(objects[i].url, function (object) {
+          var liveObject = new LiveObject(object);
+          _this2.loadedObjects[objects[i].name] = liveObject;
+        });
+      };
+
+      for (var i = 0; i < objects.length; i++) {
+        _loop(i);
+      }
+    }
+  }, {
+    key: 'loadObject',
+    value: function loadObject(url, x, y, z) {
+      var _this3 = this;
+
+      this._getObjectJSON(url, function (object) {
+        _this3.scene.add(object);
+        _this3.meshes.push(object);
       });
     }
   }, {
@@ -263,13 +361,14 @@ var Monolith = function () {
       var w = this.settings.blockWidth;
       var h = this.settings.blockHeight;
 
-      object.body.position.set(-x * w, y * h, -z * w);
-      this.world.addBody(object.body);
+      object.position.set(-x * w, y * h, -z * w);
       this.meshes.push(object.mesh);
-      this.bodies.push(object.body);
 
       this.intersectableObjects.push(object.mesh);
       this.scene.add(object.mesh);
+
+      // RetardedPhysicsEngine.js
+      this.retardedPhysicsEngine.addObject(object);
     }
   }, {
     key: '_onWindowResize',
@@ -291,20 +390,6 @@ var Monolith = function () {
       this.scene.add(spotLightTop);
       this.scene.add(spotLightLeft);
     }
-  }, {
-    key: '_normalizeBodiesPositions',
-    value: function _normalizeBodiesPositions() {
-      for (var i = 0; i < this.bodies.length; i++) {
-        if (!this.bodies[i].inMove) {
-          if (Math.round(this.bodies[i].position.x) !== this.bodies[i].position.x) {
-            this.bodies[i].position.x = Math.round(this.bodies[i].position.x / this.settings.blockWidth) * this.settings.blockWidth;
-          }
-          if (Math.round(this.bodies[i].position.z) !== this.bodies[i].position.z) {
-            this.bodies[i].position.z = Math.round(this.bodies[i].position.z / this.settings.blockWidth) * this.settings.blockWidth;
-          }
-        }
-      }
-    }
 
     // Let the camera follow specified object!
 
@@ -313,14 +398,6 @@ var Monolith = function () {
     value: function attachCamera(object) {
       object.cameraAttached = true;
       this.referenceObject = object;
-    }
-  }, {
-    key: '_updateMeshPositions',
-    value: function _updateMeshPositions() {
-      for (var i = 0; i < this.meshes.length; i++) {
-        this.meshes[i].position.copy(this.bodies[i].position);
-        this.meshes[i].quaternion.copy(this.bodies[i].quaternion);
-      }
     }
   }, {
     key: 'mouseMove',
@@ -373,7 +450,7 @@ var Monolith = function () {
   }, {
     key: 'smoothlySetCameraPosition',
     value: function smoothlySetCameraPosition(x, y, z) {
-      var _this3 = this;
+      var _this4 = this;
 
       var translationX = x - this.camera.position.x;
       var translationY = y - this.camera.position.y;
@@ -381,24 +458,16 @@ var Monolith = function () {
       var frames = 100;
       for (var i = 0; i < frames; i++) {
         setTimeout(function () {
-          _this3.camera.position.x += translationX / frames;
-          _this3.camera.position.y += translationY / frames;
-          _this3.camera.position.z += translationZ / frames;
+          _this4.camera.position.x += translationX / frames;
+          _this4.camera.position.y += translationY / frames;
+          _this4.camera.position.z += translationZ / frames;
         }, i * 1);
       }
     }
   }, {
     key: '_animate',
     value: function _animate(time) {
-      this._updateMeshPositions();
-
-      if (time && this.lastTime) {
-        var dt = time - this.lastTime;
-        this.world.step(this.fixedTimeStep, dt / 1000, this.maxSubSteps);
-      }
-
       this._render();
-      this.lastTime = time;
       requestAnimationFrame(this._animate);
     }
   }, {

@@ -1,11 +1,15 @@
 import LiveObject from './modules/LiveObject.js'
 import Player from './modules/Player.js'
+import RetardedPhysicsEngine from './modules/RetardedPhysicsEngine.js'
 
 class Monolith {
   constructor (settings) {
     this.settings = settings
+    this.loadedObjects = []
     this.intersectableObjects = []
     this.referenceObject = {}
+    this.gravity = settings.gravity
+    this.meshes = []
     // Three.js
     this.scene = new THREE.Scene()
     this.loader = new THREE.ObjectLoader()
@@ -15,15 +19,16 @@ class Monolith {
     this.raycaster = new THREE.Raycaster()
     this.intersectedObject = {}
 
-    // Cannon.js
-    this.bodies = []
-    this.meshes = []
-    this.fixedTimeStep = 1 / 60
-    this.maxSubSteps = 3
+    // RetardedPhysicsEngine.js
+    this.retardedPhysicsEngine = new RetardedPhysicsEngine({
+      gravity: this.gravity,
+      sizeX: 100,
+      sizeY: 100,
+      sizeZ: 100
+    })
 
     this._animate = this._animate.bind(this)
     this._onWindowResize = this._onWindowResize.bind(this)
-    this._normalizeBodiesPositions = this._normalizeBodiesPositions.bind(this)
   }
 
   init () {
@@ -36,39 +41,24 @@ class Monolith {
     this.renderer.shadowMap.enabled = true
     document.body.appendChild(this.renderer.domElement)
 
-    // Cannon.js
-
-    this.world = new CANNON.World()
-    this.world.broadphase = new CANNON.NaiveBroadphase()
-    this.world.solver.iterations = 12
-    this.world.gravity.set(0, -this.settings.gravity, 0)
-
     window.addEventListener('mousedown', e => this.mouseDown(e))
     window.addEventListener('mousemove', e => this.mouseMove(e))
     window.addEventListener('resize', this._onWindowResize, false)
 
-    setInterval(this._normalizeBodiesPositions, 100)
-
     requestAnimationFrame(this._animate)
   }
 
-  createBlock (color, mass) {
+  createBlock (color) {
     let geometry = new THREE.CubeGeometry(this.settings.blockWidth, this.settings.blockHeight, this.settings.blockWidth)
     let material = new THREE.MeshLambertMaterial({color})
-    let shape = new CANNON.Box(new CANNON.Vec3(-0.48 * this.settings.blockWidth, 0.5 * this.settings.blockHeight, -0.48 * this.settings.blockWidth))
-    let block = new LiveObject({
-      geometry,
-      material,
-      shape,
-      color,
-      width: this.settings.blockWidth,
-      height: this.settings.blockHeight,
-      mass
-    })
+    let object = {}
+    object.geometry = geometry
+    object.material = material
+    let block = new LiveObject(object)
     return block
   }
 
-  _loadObjectJSON (url, onload) {
+  _getObjectJSON (url, onload) {
     this.loader.load(
       url,
       function (object) {
@@ -81,17 +71,19 @@ class Monolith {
     )
   }
 
+  loadObjects (objects) {
+    for (let i = 0; i < objects.length; i++) {
+      this._getObjectJSON(objects[i].url, (object) => {
+        let liveObject = new LiveObject(object)
+        this.loadedObjects[objects[i].name] = liveObject
+      })
+    }
+  }
+
   loadObject (url, x, y, z) {
-    this._loadObjectJSON(url, (object) => {
+    this._getObjectJSON(url, (object) => {
       this.scene.add(object)
       this.meshes.push(object)
-      let shape = new CANNON.Box(new CANNON.Vec3(-0.48 * this.settings.blockWidth, 0.5 * this.settings.blockHeight, -0.48 * this.settings.blockWidth))
-      let body = new CANNON.Body({ mass: 700, material: new CANNON.Material() })
-      body.inMove = false
-      body.position.set(x, y, z)
-      body.addShape(shape)
-      this.bodies.push(body)
-      this.world.addBody(body)
     })
   }
 
@@ -99,13 +91,14 @@ class Monolith {
     let w = this.settings.blockWidth
     let h = this.settings.blockHeight
 
-    object.body.position.set(-x * w, y * h, -z * w)
-    this.world.addBody(object.body)
+    object.position.set(-x * w, y * h, -z * w)
     this.meshes.push(object.mesh)
-    this.bodies.push(object.body)
 
     this.intersectableObjects.push(object.mesh)
     this.scene.add(object.mesh)
+
+    // RetardedPhysicsEngine.js
+    this.retardedPhysicsEngine.addObject(object)
   }
 
   _onWindowResize () {
@@ -126,30 +119,10 @@ class Monolith {
     this.scene.add(spotLightLeft)
   }
 
-  _normalizeBodiesPositions () {
-    for (var i = 0; i < this.bodies.length; i++) {
-      if (!this.bodies[i].inMove) {
-        if (Math.round(this.bodies[i].position.x) !== this.bodies[i].position.x) {
-          this.bodies[i].position.x = Math.round(this.bodies[i].position.x / this.settings.blockWidth) * this.settings.blockWidth
-        }
-        if (Math.round(this.bodies[i].position.z) !== this.bodies[i].position.z) {
-          this.bodies[i].position.z = Math.round(this.bodies[i].position.z / this.settings.blockWidth) * this.settings.blockWidth
-        }
-      }
-    }
-  }
-
   // Let the camera follow specified object!
   attachCamera (object) {
     object.cameraAttached = true
     this.referenceObject = object
-  }
-
-  _updateMeshPositions () {
-    for (var i = 0; i < this.meshes.length; i++) {
-      this.meshes[i].position.copy(this.bodies[i].position)
-      this.meshes[i].quaternion.copy(this.bodies[i].quaternion)
-    }
   }
 
   mouseMove (event) {
@@ -216,15 +189,7 @@ class Monolith {
   }
 
   _animate (time) {
-    this._updateMeshPositions()
-
-    if (time && this.lastTime) {
-      var dt = time - this.lastTime
-      this.world.step(this.fixedTimeStep, dt / 1000, this.maxSubSteps)
-    }
-
     this._render()
-    this.lastTime = time
     requestAnimationFrame(this._animate)
   }
 

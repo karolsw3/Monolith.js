@@ -1,29 +1,18 @@
 class LiveObject {
-  constructor (settings) {
-    this.width = settings.width
-    this.height = settings.height
+  constructor (object) {
+    this.inMove = false
     this.horizontalCollision = false
 
     // Graphics
-    let object = new THREE.Mesh(settings.geometry, settings.material)
-    object.mass = settings.mass
-    this.mesh = object
+    this.mesh = new THREE.Mesh(object.geometry, object.material)
     this.mesh.mouseDown = () => {}
-    this.mesh.defaultColor = settings.color
-    // Physics
-    this.body = new CANNON.Body({ mass: settings.mass, material: new CANNON.Material() })
-    this.body.inMove = false
-    this.body.addShape(settings.shape)
-  }
-
-  attachMovementControls () {
-    this.body.angularDamping = 1
-
-    this.body.addEventListener('collide', (e) => {
-      if (Math.round(e.body.position.y) === Math.ceil(this.body.position.y)) {
-        this.horizontalCollision = true
-      }
-    }, false)
+    this.mesh.defaultColor = this.mesh.material.color
+    this.position = {x: 0, y: 0, z: 0}
+    this.position.set = (x, y, z) => {
+      this.position.x = x
+      this.position.y = y
+      this.position.z = z
+    }
   }
 
   move (direction) {
