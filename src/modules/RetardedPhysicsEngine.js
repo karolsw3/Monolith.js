@@ -3,6 +3,7 @@ import Utils from './Utils.js'
 class RetardedPhysicsEngine {
   constructor (settings) {
     this.utils = new Utils()
+    this.grid = settings.grid
     this.gravity = settings.gravity
     this.sizeX = settings.sizeX
     this.sizeY = settings.sizeY
@@ -12,26 +13,29 @@ class RetardedPhysicsEngine {
   }
 
   addObject (object) {
-    let position = this.utils.getObjectsFixedPosition(object)
+    let position = this.utils.getObjectsFixedPosition(object.position, this.grid)
     this.objectsMatrix[position.x][position.y][position.z] = object
   }
 
   checkAllObjectsIfTheyShouldFall () {
     for (let x = 0; x < this.sizeX; x++) {
-      for (let z = 0; this.sizeZ; z++) {
+      for (let z = 0; z < this.sizeZ; z++) {
         this.checkIfColumnShouldFall(x, z)
       }
     }
   }
 
   checkIfColumnShouldFall (x, z) {
-    for (let y = 1; y < this.sizeY; y++) {
+    let groundPosition = 0
+    for (let y = 0; y < this.sizeY; y++) {
       let object = this.objectsMatrix[x][y][z]
-      if (this.objectsMatrix[x][y - 1][z] === 0) {
-        object.distanceAboveGround = y
+      if (y > 0 && this.objectsMatrix[x][y][z] !== 0 && this.objectsMatrix[x][y - 1][z] === 0) {
+        object.distanceAboveGround = y - groundPosition
         object.previousPosition = {x, y, z}
         this.objectsWhichShouldFall.push(object)
         break
+      } else if (this.objectsMatrix[x][y][z] !== 0) {
+        groundPosition++
       }
     }
   }
@@ -39,8 +43,9 @@ class RetardedPhysicsEngine {
   makeObjectsFall () {
     for (let i = 0; i < this.objectsWhichShouldFall.length; i++) {
       let object = this.objectsWhichShouldFall[i]
-      let distanceValues = this._calculateDistanceValues()
-      for (let repetitions = 0; repetitions < object.distanceAboveGround; repetitions++) {
+      let distanceValues = this._calculateDistanceValues(object.distanceAboveGround)
+      object.previousPosition = Object.assign({}, object.position)
+      for (let repetitions = 0; repetitions < distanceValues.length; repetitions++) {
         setTimeout(() => {
           object.position.y -= distanceValues[repetitions]
         }, repetitions * this.gravity)
@@ -48,17 +53,19 @@ class RetardedPhysicsEngine {
 
       setTimeout(() => {
         object.position.y = Math.round(object.position.y)
-        this.objectsMatrix[object.position.x][object.position.y][object.position.z] = object // Consider Object.assign({}, object)
-        this.objectsMatrix[object.previousPosition.x][object.previousPosition.y][object.previousPosition.z] = 0
-      }, object.distanceAboveGround * this.gravity)
-      object.velocity += this.gravity
+        let actualPosition = this.utils.getObjectsFixedPosition(object.position, this.grid)
+        let previousPosition = this.utils.getObjectsFixedPosition(object.previousPosition, this.grid)
+        this.objectsMatrix[actualPosition.x][actualPosition.y][actualPosition.z] = Object.assign({}, object)
+        this.objectsMatrix[previousPosition.x][previousPosition.y][previousPosition.z] = 0
+      }, distanceValues.length * this.gravity)
     }
+
+    this.objectsWhichShouldFall = []
   }
 
-  _calculateDistanceValues (startY, endY) {
-    let maxDistance = endY - startY
+  _calculateDistanceValues (maxDistance) {
     let values = []
-    for (let i = 0; i < 20; i++) {
+    for (let i = 1; i < 15; i++) {
       values.push(maxDistance / Math.pow(2, i))
     }
     return values.reverse()

@@ -30,30 +30,6 @@ var createClass = function () {
   };
 }();
 
-var inherits = function (subClass, superClass) {
-  if (typeof superClass !== "function" && superClass !== null) {
-    throw new TypeError("Super expression must either be null or a function, not " + typeof superClass);
-  }
-
-  subClass.prototype = Object.create(superClass && superClass.prototype, {
-    constructor: {
-      value: subClass,
-      enumerable: false,
-      writable: true,
-      configurable: true
-    }
-  });
-  if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass;
-};
-
-var possibleConstructorReturn = function (self, call) {
-  if (!self) {
-    throw new ReferenceError("this hasn't been initialised - super() hasn't been called");
-  }
-
-  return call && (typeof call === "object" || typeof call === "function") ? call : self;
-};
-
 var LiveObject = function () {
   function LiveObject(object) {
     var _this = this;
@@ -67,7 +43,7 @@ var LiveObject = function () {
     this.mesh = new THREE.Mesh(object.geometry, object.material);
     this.mesh.mouseDown = function () {};
     this.mesh.defaultColor = this.mesh.material.color;
-    this.position = { x: 0, y: 0, z: 0 };
+    this.position = this.mesh.position;
     this.position.set = function (x, y, z) {
       _this.position.x = x;
       _this.position.y = y;
@@ -131,17 +107,6 @@ var LiveObject = function () {
   return LiveObject;
 }();
 
-var Player = function (_LiveObject) {
-  inherits(Player, _LiveObject);
-
-  function Player(settings) {
-    classCallCheck(this, Player);
-    return possibleConstructorReturn(this, (Player.__proto__ || Object.getPrototypeOf(Player)).call(this));
-  }
-
-  return Player;
-}(LiveObject);
-
 var Utils = function () {
   function Utils() {
     classCallCheck(this, Utils);
@@ -149,10 +114,10 @@ var Utils = function () {
 
   createClass(Utils, [{
     key: "getObjectsFixedPosition",
-    value: function getObjectsFixedPosition(object) {
-      var objectX = -Math.round(object.position.x / object.mesh.geometry.parameters.width);
-      var objectY = Math.ceil(object.position.y / object.mesh.geometry.parameters.height);
-      var objectZ = -Math.round(object.position.z / object.mesh.geometry.parameters.depth);
+    value: function getObjectsFixedPosition(objectPosition, grid) {
+      var objectX = -Math.round(objectPosition.x / grid.width);
+      var objectY = Math.ceil(objectPosition.y / grid.height);
+      var objectZ = -Math.round(objectPosition.z / grid.depth);
       return {
         x: objectX,
         y: objectY,
@@ -168,6 +133,7 @@ var RetardedPhysicsEngine = function () {
     classCallCheck(this, RetardedPhysicsEngine);
 
     this.utils = new Utils();
+    this.grid = settings.grid;
     this.gravity = settings.gravity;
     this.sizeX = settings.sizeX;
     this.sizeY = settings.sizeY;
@@ -179,14 +145,14 @@ var RetardedPhysicsEngine = function () {
   createClass(RetardedPhysicsEngine, [{
     key: 'addObject',
     value: function addObject(object) {
-      var position = this.utils.getObjectsFixedPosition(object);
+      var position = this.utils.getObjectsFixedPosition(object.position, this.grid);
       this.objectsMatrix[position.x][position.y][position.z] = object;
     }
   }, {
     key: 'checkAllObjectsIfTheyShouldFall',
     value: function checkAllObjectsIfTheyShouldFall() {
       for (var x = 0; x < this.sizeX; x++) {
-        for (var z = 0; this.sizeZ; z++) {
+        for (var z = 0; z < this.sizeZ; z++) {
           this.checkIfColumnShouldFall(x, z);
         }
       }
@@ -194,13 +160,16 @@ var RetardedPhysicsEngine = function () {
   }, {
     key: 'checkIfColumnShouldFall',
     value: function checkIfColumnShouldFall(x, z) {
-      for (var y = 1; y < this.sizeY; y++) {
+      var groundPosition = 0;
+      for (var y = 0; y < this.sizeY; y++) {
         var object = this.objectsMatrix[x][y][z];
-        if (this.objectsMatrix[x][y - 1][z] === 0) {
-          object.distanceAboveGround = y;
+        if (y > 0 && this.objectsMatrix[x][y][z] !== 0 && this.objectsMatrix[x][y - 1][z] === 0) {
+          object.distanceAboveGround = y - groundPosition;
           object.previousPosition = { x: x, y: y, z: z };
           this.objectsWhichShouldFall.push(object);
           break;
+        } else if (this.objectsMatrix[x][y][z] !== 0) {
+          groundPosition++;
         }
       }
     }
@@ -211,7 +180,8 @@ var RetardedPhysicsEngine = function () {
 
       var _loop = function _loop(i) {
         var object = _this.objectsWhichShouldFall[i];
-        var distanceValues = _this._calculateDistanceValues();
+        var distanceValues = _this._calculateDistanceValues(object.distanceAboveGround);
+        object.previousPosition = Object.assign({}, object.position);
 
         var _loop2 = function _loop2(repetitions) {
           setTimeout(function () {
@@ -219,28 +189,30 @@ var RetardedPhysicsEngine = function () {
           }, repetitions * _this.gravity);
         };
 
-        for (var repetitions = 0; repetitions < object.distanceAboveGround; repetitions++) {
+        for (var repetitions = 0; repetitions < distanceValues.length; repetitions++) {
           _loop2(repetitions);
         }
 
         setTimeout(function () {
           object.position.y = Math.round(object.position.y);
-          _this.objectsMatrix[object.position.x][object.position.y][object.position.z] = object; // Consider Object.assign({}, object)
-          _this.objectsMatrix[object.previousPosition.x][object.previousPosition.y][object.previousPosition.z] = 0;
-        }, object.distanceAboveGround * _this.gravity);
-        object.velocity += _this.gravity;
+          var actualPosition = _this.utils.getObjectsFixedPosition(object.position, _this.grid);
+          var previousPosition = _this.utils.getObjectsFixedPosition(object.previousPosition, _this.grid);
+          _this.objectsMatrix[actualPosition.x][actualPosition.y][actualPosition.z] = Object.assign({}, object);
+          _this.objectsMatrix[previousPosition.x][previousPosition.y][previousPosition.z] = 0;
+        }, distanceValues.length * _this.gravity);
       };
 
       for (var i = 0; i < this.objectsWhichShouldFall.length; i++) {
         _loop(i);
       }
+
+      this.objectsWhichShouldFall = [];
     }
   }, {
     key: '_calculateDistanceValues',
-    value: function _calculateDistanceValues(startY, endY) {
-      var maxDistance = endY - startY;
+    value: function _calculateDistanceValues(maxDistance) {
       var values = [];
-      for (var i = 0; i < 20; i++) {
+      for (var i = 1; i < 15; i++) {
         values.push(maxDistance / Math.pow(2, i));
       }
       return values.reverse();
@@ -287,6 +259,7 @@ var Monolith = function () {
     // RetardedPhysicsEngine.js
     this.retardedPhysicsEngine = new RetardedPhysicsEngine({
       gravity: this.gravity,
+      grid: this.settings.grid,
       sizeX: 100,
       sizeY: 100,
       sizeZ: 100
@@ -442,8 +415,8 @@ var Monolith = function () {
   }, {
     key: '_checkIfObjectIsWithinRenderDistance',
     value: function _checkIfObjectIsWithinRenderDistance(object) {
-      var position = this.utils.getObjectsFixedPosition(object);
-      var referencePosition = this.utils.getObjectsFixedPosition(this.referenceObject);
+      var position = this.utils.getObjectsFixedPosition(object.position, this.settings.grid);
+      var referencePosition = this.utils.getObjectsFixedPosition(this.referenceObject.position, this.settings.grid);
       return position.x > referencePosition.x - this.settings.renderDistance * this.settings.blockWidth && position.x < referencePosition.x + this.settings.renderDistance * this.settings.blockWidth && position.z > referencePosition.z - this.settings.renderDistance * this.settings.blockWidth && position.z < referencePosition.z + this.settings.renderDistance * this.settings.blockWidth;
     }
   }, {

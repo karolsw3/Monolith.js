@@ -1,8 +1,8 @@
 class Utils {
-  getObjectsFixedPosition (object) {
-    let objectX = -Math.round(object.position.x / object.mesh.geometry.parameters.width)
-    let objectY = Math.ceil(object.position.y / object.mesh.geometry.parameters.height)
-    let objectZ = -Math.round(object.position.z / object.mesh.geometry.parameters.depth)
+  getObjectsFixedPosition (objectPosition, grid) {
+    let objectX = -Math.round(objectPosition.x / grid.width)
+    let objectY = Math.ceil(objectPosition.y / grid.height)
+    let objectZ = -Math.round(objectPosition.z / grid.depth)
     return {
       x: objectX,
       y: objectY,

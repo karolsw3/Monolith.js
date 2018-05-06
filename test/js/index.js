@@ -3,7 +3,13 @@ var monolith = new Monolith({
   blockWidth: 3,
   blockHeight: 1,
   renderDistance: 4,
-  gravity: 19.82
+  gravity: 59.82,
+  grid: {
+    width: 3,
+    height: 1,
+    depth: 3,
+    visible: false
+  }
 })
 
 monolith.init()

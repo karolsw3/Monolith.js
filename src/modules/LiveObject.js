@@ -7,7 +7,7 @@ class LiveObject {
     this.mesh = new THREE.Mesh(object.geometry, object.material)
     this.mesh.mouseDown = () => {}
     this.mesh.defaultColor = this.mesh.material.color
-    this.position = {x: 0, y: 0, z: 0}
+    this.position = this.mesh.position
     this.position.set = (x, y, z) => {
       this.position.x = x
       this.position.y = y

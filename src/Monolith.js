@@ -23,6 +23,7 @@ class Monolith {
     // RetardedPhysicsEngine.js
     this.retardedPhysicsEngine = new RetardedPhysicsEngine({
       gravity: this.gravity,
+      grid: this.settings.grid,
       sizeX: 100,
       sizeY: 100,
       sizeZ: 100
@@ -154,8 +155,8 @@ class Monolith {
   }
 
   _checkIfObjectIsWithinRenderDistance (object) {
-    let position = this.utils.getObjectsFixedPosition(object)
-    let referencePosition = this.utils.getObjectsFixedPosition(this.referenceObject)
+    let position = this.utils.getObjectsFixedPosition(object.position, this.settings.grid)
+    let referencePosition = this.utils.getObjectsFixedPosition(this.referenceObject.position, this.settings.grid)
     return (
       position.x > referencePosition.x - this.settings.renderDistance * this.settings.blockWidth &&
       position.x < referencePosition.x + this.settings.renderDistance * this.settings.blockWidth &&
