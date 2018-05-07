@@ -4,7 +4,6 @@ class RetardedPhysicsEngine {
   constructor (settings) {
     this.utils = new Utils()
     this.grid = settings.grid
-    this.gravity = settings.gravity
     this.sizeX = settings.sizeX
     this.sizeY = settings.sizeY
     this.sizeZ = settings.sizeZ
@@ -18,6 +17,7 @@ class RetardedPhysicsEngine {
   }
 
   checkAllObjectsIfTheyShouldFall () {
+    this.objectsWhichShouldFall = []
     for (let x = 0; x < this.sizeX; x++) {
       for (let z = 0; z < this.sizeZ; z++) {
         this.checkIfColumnShouldFall(x, z)

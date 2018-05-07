@@ -22,11 +22,10 @@ class Monolith {
 
     // RetardedPhysicsEngine.js
     this.retardedPhysicsEngine = new RetardedPhysicsEngine({
-      gravity: this.gravity,
       grid: this.settings.grid,
-      sizeX: 100,
+      sizeX: 10,
       sizeY: 100,
-      sizeZ: 100
+      sizeZ: 10
     })
 
     this._animate = this._animate.bind(this)
@@ -48,6 +47,17 @@ class Monolith {
     window.addEventListener('resize', this._onWindowResize, false)
 
     requestAnimationFrame(this._animate)
+  }
+
+  letAllFloatingObjectsFall () {
+    this.retardedPhysicsEngine.checkAllObjectsIfTheyShouldFall()
+    this.retardedPhysicsEngine.makeObjectsFall()
+    setTimeout(() => {
+      this.retardedPhysicsEngine.checkAllObjectsIfTheyShouldFall()
+      if (this.retardedPhysicsEngine.objectsWhichShouldFall.length > 0) {
+        this.letAllFloatingObjectsFall()
+      }
+    }, 800)
   }
 
   createBlock (color) {

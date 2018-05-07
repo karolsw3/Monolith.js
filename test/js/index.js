@@ -3,7 +3,7 @@ var monolith = new Monolith({
   blockWidth: 3,
   blockHeight: 1,
   renderDistance: 4,
-  gravity: 59.82,
+  gravity: true,
   grid: {
     width: 3,
     height: 1,
@@ -16,12 +16,10 @@ monolith.init()
 
 for (let x = 0; x < 8; x++) {
   for (let z = 0; z < 8; z++) {
-    monolith.placeObject(monolith.createBlock(0x443355, 0), x, 1, z)
-    for (let i = 10; i < Math.round(Math.random() * 2 + 12); i++) {
-      if (Math.round(Math.random() * 2) === 1) {
+    monolith.placeObject(monolith.createBlock(0x443355, 0), x, 0, z)
+    for (let i = 2; i < Math.round(Math.random() * 4 + 2); i++) {
+      if (Math.round(Math.random() * 3) === 1) {
         monolith.placeObject(monolith.createBlock(0xff8749, 700), x, i, z)
-      } else {
-        monolith.placeObject(monolith.createBlock(0x559af4, 700), x, i, z)
       }
     }
   }
@@ -33,10 +31,10 @@ player.mouseDown = () => {
 }
 
 monolith.attachCamera(player)
-monolith.placeObject(player, 5, 9, 5)
+monolith.placeObject(player, 5, 22, 5)
 
-// monolith.loadObject('https://api.myjson.com/bins/1ewmje', -6, 14, -9)
-
+monolith.loadObject('https://api.myjson.com/bins/1ewmje', -12, 14, -12)
+monolith.letAllFloatingObjectsFall()
 window.addEventListener('keydown', (event) => {
   var keyCode = event.keyCode
   switch (keyCode) {

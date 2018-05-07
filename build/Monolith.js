@@ -134,7 +134,6 @@ var RetardedPhysicsEngine = function () {
 
     this.utils = new Utils();
     this.grid = settings.grid;
-    this.gravity = settings.gravity;
     this.sizeX = settings.sizeX;
     this.sizeY = settings.sizeY;
     this.sizeZ = settings.sizeZ;
@@ -151,6 +150,7 @@ var RetardedPhysicsEngine = function () {
   }, {
     key: 'checkAllObjectsIfTheyShouldFall',
     value: function checkAllObjectsIfTheyShouldFall() {
+      this.objectsWhichShouldFall = [];
       for (var x = 0; x < this.sizeX; x++) {
         for (var z = 0; z < this.sizeZ; z++) {
           this.checkIfColumnShouldFall(x, z);
@@ -255,11 +255,10 @@ var Monolith = function () {
 
     // RetardedPhysicsEngine.js
     this.retardedPhysicsEngine = new RetardedPhysicsEngine({
-      gravity: this.gravity,
       grid: this.settings.grid,
-      sizeX: 100,
+      sizeX: 10,
       sizeY: 100,
-      sizeZ: 100
+      sizeZ: 10
     });
 
     this._animate = this._animate.bind(this);
@@ -291,6 +290,20 @@ var Monolith = function () {
       requestAnimationFrame(this._animate);
     }
   }, {
+    key: 'letAllFloatingObjectsFall',
+    value: function letAllFloatingObjectsFall() {
+      var _this2 = this;
+
+      this.retardedPhysicsEngine.checkAllObjectsIfTheyShouldFall();
+      this.retardedPhysicsEngine.makeObjectsFall();
+      setTimeout(function () {
+        _this2.retardedPhysicsEngine.checkAllObjectsIfTheyShouldFall();
+        if (_this2.retardedPhysicsEngine.objectsWhichShouldFall.length > 0) {
+          _this2.letAllFloatingObjectsFall();
+        }
+      }, 800);
+    }
+  }, {
     key: 'createBlock',
     value: function createBlock(color) {
       var geometry = new THREE.CubeGeometry(this.settings.blockWidth, this.settings.blockHeight, this.settings.blockWidth);
@@ -313,12 +326,12 @@ var Monolith = function () {
   }, {
     key: 'loadObjects',
     value: function loadObjects(objects) {
-      var _this2 = this;
+      var _this3 = this;
 
       var _loop = function _loop(i) {
-        _this2._getObjectJSON(objects[i].url, function (object) {
+        _this3._getObjectJSON(objects[i].url, function (object) {
           var liveObject = new LiveObject(object);
-          _this2.loadedObjects[objects[i].name] = liveObject;
+          _this3.loadedObjects[objects[i].name] = liveObject;
         });
       };
 
@@ -329,11 +342,11 @@ var Monolith = function () {
   }, {
     key: 'loadObject',
     value: function loadObject(url, x, y, z) {
-      var _this3 = this;
+      var _this4 = this;
 
       this._getObjectJSON(url, function (object) {
-        _this3.scene.add(object);
-        _this3.meshes.push(object);
+        _this4.scene.add(object);
+        _this4.meshes.push(object);
       });
     }
   }, {
@@ -419,7 +432,7 @@ var Monolith = function () {
   }, {
     key: 'smoothlySetCameraPosition',
     value: function smoothlySetCameraPosition(x, y, z) {
-      var _this4 = this;
+      var _this5 = this;
 
       var translationX = x - this.camera.position.x;
       var translationY = y - this.camera.position.y;
@@ -427,9 +440,9 @@ var Monolith = function () {
       var frames = 100;
       for (var i = 0; i < frames; i++) {
         setTimeout(function () {
-          _this4.camera.position.x += translationX / frames;
-          _this4.camera.position.y += translationY / frames;
-          _this4.camera.position.z += translationZ / frames;
+          _this5.camera.position.x += translationX / frames;
+          _this5.camera.position.y += translationY / frames;
+          _this5.camera.position.z += translationZ / frames;
         }, i * 1);
       }
     }
