@@ -165,6 +165,7 @@ var RetardedPhysicsEngine = function () {
         var object = this.objectsMatrix[x][y][z];
         if (y > 0 && this.objectsMatrix[x][y][z] !== 0 && this.objectsMatrix[x][y - 1][z] === 0) {
           object.distanceAboveGround = y - groundPosition;
+          object.groundPosition = groundPosition;
           object.previousPosition = { x: x, y: y, z: z };
           this.objectsWhichShouldFall.push(object);
           break;
@@ -180,16 +181,16 @@ var RetardedPhysicsEngine = function () {
 
       var _loop = function _loop(i) {
         var object = _this.objectsWhichShouldFall[i];
-        var distanceValues = _this._calculateDistanceValues(object.distanceAboveGround);
+
         object.previousPosition = Object.assign({}, object.position);
 
         var _loop2 = function _loop2(repetitions) {
           setTimeout(function () {
-            object.position.y -= distanceValues[repetitions];
-          }, repetitions * _this.gravity);
+            object.position.y = object.groundPosition + object.distanceAboveGround - _this.easeOutCubic(repetitions / 100) * object.distanceAboveGround;
+          }, repetitions * 8);
         };
 
-        for (var repetitions = 0; repetitions < distanceValues.length; repetitions++) {
+        for (var repetitions = 0; repetitions < 100; repetitions++) {
           _loop2(repetitions);
         }
 
@@ -199,7 +200,7 @@ var RetardedPhysicsEngine = function () {
           var previousPosition = _this.utils.getObjectsFixedPosition(object.previousPosition, _this.grid);
           _this.objectsMatrix[actualPosition.x][actualPosition.y][actualPosition.z] = Object.assign({}, object);
           _this.objectsMatrix[previousPosition.x][previousPosition.y][previousPosition.z] = 0;
-        }, distanceValues.length * _this.gravity);
+        }, 100 * 8);
       };
 
       for (var i = 0; i < this.objectsWhichShouldFall.length; i++) {
@@ -209,13 +210,9 @@ var RetardedPhysicsEngine = function () {
       this.objectsWhichShouldFall = [];
     }
   }, {
-    key: '_calculateDistanceValues',
-    value: function _calculateDistanceValues(maxDistance) {
-      var values = [];
-      for (var i = 1; i < 15; i++) {
-        values.push(maxDistance / Math.pow(2, i));
-      }
-      return values.reverse();
+    key: 'easeOutCubic',
+    value: function easeOutCubic(t) {
+      return Math.pow(t, 3);
     }
   }, {
     key: '_create3DMatrix',

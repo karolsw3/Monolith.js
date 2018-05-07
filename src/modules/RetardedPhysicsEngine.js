@@ -31,6 +31,7 @@ class RetardedPhysicsEngine {
       let object = this.objectsMatrix[x][y][z]
       if (y > 0 && this.objectsMatrix[x][y][z] !== 0 && this.objectsMatrix[x][y - 1][z] === 0) {
         object.distanceAboveGround = y - groundPosition
+        object.groundPosition = groundPosition
         object.previousPosition = {x, y, z}
         this.objectsWhichShouldFall.push(object)
         break
@@ -43,12 +44,12 @@ class RetardedPhysicsEngine {
   makeObjectsFall () {
     for (let i = 0; i < this.objectsWhichShouldFall.length; i++) {
       let object = this.objectsWhichShouldFall[i]
-      let distanceValues = this._calculateDistanceValues(object.distanceAboveGround)
+
       object.previousPosition = Object.assign({}, object.position)
-      for (let repetitions = 0; repetitions < distanceValues.length; repetitions++) {
+      for (let repetitions = 0; repetitions < 100; repetitions++) {
         setTimeout(() => {
-          object.position.y -= distanceValues[repetitions]
-        }, repetitions * this.gravity)
+          object.position.y = object.groundPosition + object.distanceAboveGround - this.easeOutCubic(repetitions / 100) * object.distanceAboveGround
+        }, repetitions * 8)
       }
 
       setTimeout(() => {
@@ -57,18 +58,14 @@ class RetardedPhysicsEngine {
         let previousPosition = this.utils.getObjectsFixedPosition(object.previousPosition, this.grid)
         this.objectsMatrix[actualPosition.x][actualPosition.y][actualPosition.z] = Object.assign({}, object)
         this.objectsMatrix[previousPosition.x][previousPosition.y][previousPosition.z] = 0
-      }, distanceValues.length * this.gravity)
+      }, 100 * 8)
     }
 
     this.objectsWhichShouldFall = []
   }
 
-  _calculateDistanceValues (maxDistance) {
-    let values = []
-    for (let i = 1; i < 15; i++) {
-      values.push(maxDistance / Math.pow(2, i))
-    }
-    return values.reverse()
+  easeOutCubic (t) {
+    return Math.pow(t, 3)
   }
 
   _create3DMatrix (maxX, maxY, maxZ) {
