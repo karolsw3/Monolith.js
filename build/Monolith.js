@@ -36,7 +36,8 @@ var LiveObject = function () {
 
     classCallCheck(this, LiveObject);
 
-    this.inMove = false;
+    this.isMoving = false;
+    this.isFalling = false;
     this.horizontalCollision = false;
 
     // Graphics
@@ -57,32 +58,30 @@ var LiveObject = function () {
     value: function move(direction, callback) {
       var _this2 = this;
 
-      if (!this.inMove) {
-        this.inMove = true;
-        this.previousPosition = { x: this.position.x, y: this.position.y, z: this.position.z };
-        for (var i = 0; i < 60; i++) {
-          setTimeout(function () {
-            switch (direction) {
-              case 'right':
-                _this2.position.x += _this2.width / 3 * 0.05;
-                break;
-              case 'left':
-                _this2.position.x -= _this2.width / 3 * 0.05;
-                break;
-              case 'forward':
-                _this2.position.z -= _this2.width / 3 * 0.05;
-                break;
-              case 'backward':
-                _this2.position.z += _this2.width / 3 * 0.05;
-                break;
-            }
-          }, 1 * i);
-        }
+      this.isMoving = true;
+      this.previousPosition = { x: this.position.x, y: this.position.y, z: this.position.z };
+      for (var i = 0; i < 60; i++) {
         setTimeout(function () {
-          _this2.inMove = false;
-          callback();
-        }, 61);
+          switch (direction) {
+            case 'right':
+              _this2.position.x += _this2.width / 3 * 0.05;
+              break;
+            case 'left':
+              _this2.position.x -= _this2.width / 3 * 0.05;
+              break;
+            case 'forward':
+              _this2.position.z -= _this2.width / 3 * 0.05;
+              break;
+            case 'backward':
+              _this2.position.z += _this2.width / 3 * 0.05;
+              break;
+          }
+        }, 1 * i);
       }
+      setTimeout(function () {
+        _this2.isMoving = false;
+        callback();
+      }, 70);
     }
   }]);
   return LiveObject;
@@ -100,9 +99,9 @@ var Utils = function () {
       var objectY = Math.ceil(objectPosition.y / grid.height);
       var objectZ = -Math.round(objectPosition.z / grid.depth);
       return {
-        x: objectX,
+        x: Math.abs(objectX),
         y: objectY,
-        z: objectZ
+        z: Math.abs(objectZ)
       };
     }
   }]);
@@ -118,6 +117,7 @@ var RetardedPhysicsEngine = function () {
     this.sizeX = settings.sizeX;
     this.sizeY = settings.sizeY;
     this.sizeZ = settings.sizeZ;
+    this.objectsAreAlreadyFalling = false;
     this.objectsMatrix = this._create3DMatrix(this.sizeX, this.sizeY, this.sizeZ);
     this.objectsWhichShouldFall = [];
   }
@@ -163,7 +163,7 @@ var RetardedPhysicsEngine = function () {
       var groundPosition = 0;
       for (var y = 0; y < this.sizeY; y++) {
         var object = this.objectsMatrix[x][y][z];
-        if (y > 0 && this.objectsMatrix[x][y][z] !== 0 && this.objectsMatrix[x][y - 1][z] === 0) {
+        if (y > 0 && object !== 0 && this.objectsMatrix[x][y - 1][z] === 0) {
           object.distanceAboveGround = y - groundPosition;
           object.groundPosition = groundPosition;
           object.previousPosition = { x: x, y: y, z: z };
@@ -179,35 +179,48 @@ var RetardedPhysicsEngine = function () {
     value: function makeObjectsFall() {
       var _this = this;
 
-      var _loop = function _loop(i) {
-        var object = _this.objectsWhichShouldFall[i];
+      if (!this.objectsAreAlreadyFalling) {
+        this.objectsAreAlreadyFalling = true;
 
-        object.previousPosition = Object.assign({}, object.position);
+        var _loop = function _loop(i) {
+          var object = _this.objectsWhichShouldFall[i];
 
-        var _loop2 = function _loop2(repetitions) {
+          object.previousPosition = Object.assign({}, object.position);
+          object.isFalling = true;
+
+          var _loop2 = function _loop2(repetitions) {
+            setTimeout(function () {
+              object.position.y = object.groundPosition + object.distanceAboveGround - _this._easeOutCubic(repetitions / 100) * object.distanceAboveGround;
+            }, repetitions * 8);
+          };
+
+          for (var repetitions = 0; repetitions < 100; repetitions++) {
+            _loop2(repetitions);
+          }
+
           setTimeout(function () {
-            object.position.y = object.groundPosition + object.distanceAboveGround - _this._easeOutCubic(repetitions / 100) * object.distanceAboveGround;
-          }, repetitions * 8);
+            object.position.y = Math.round(object.position.y);
+            var actualPosition = _this.utils.getObjectsFixedPosition(object.position, _this.grid);
+            var previousPosition = _this.utils.getObjectsFixedPosition(object.previousPosition, _this.grid);
+            _this.objectsMatrix[actualPosition.x][actualPosition.y][actualPosition.z] = object;
+            _this.objectsMatrix[previousPosition.x][previousPosition.y][previousPosition.z] = 0;
+          }, 100 * 8);
+
+          setTimeout(function () {
+            object.isFalling = false;
+          }, 1000);
         };
 
-        for (var repetitions = 0; repetitions < 100; repetitions++) {
-          _loop2(repetitions);
+        for (var i = 0; i < this.objectsWhichShouldFall.length; i++) {
+          _loop(i);
         }
 
         setTimeout(function () {
-          object.position.y = Math.round(object.position.y);
-          var actualPosition = _this.utils.getObjectsFixedPosition(object.position, _this.grid);
-          var previousPosition = _this.utils.getObjectsFixedPosition(object.previousPosition, _this.grid);
-          _this.objectsMatrix[actualPosition.x][actualPosition.y][actualPosition.z] = Object.assign({}, object);
-          _this.objectsMatrix[previousPosition.x][previousPosition.y][previousPosition.z] = 0;
-        }, 100 * 8);
-      };
+          _this.objectsAreAlreadyFalling = false;
+        }, 100 * 8 + 100);
 
-      for (var i = 0; i < this.objectsWhichShouldFall.length; i++) {
-        _loop(i);
+        this.objectsWhichShouldFall = [];
       }
-
-      this.objectsWhichShouldFall = [];
     }
   }, {
     key: '_easeOutCubic',
@@ -310,10 +323,11 @@ var Monolith = function () {
       var _this3 = this;
 
       var positionBefore = this.utils.getObjectsFixedPosition(object.position, this.grid);
-      if (!this.retardedPhysicsEngine.checkCollision(object, direction)) {
+      if (!this.retardedPhysicsEngine.checkCollision(object, direction) && !object.isMoving && !object.isFalling) {
+        console.log('the object is being moved');
         object.move(direction, function () {
           var positionAfter = _this3.utils.getObjectsFixedPosition(object.position, _this3.grid);
-          _this3.retardedPhysicsEngine.objectsMatrix[positionAfter.x][positionAfter.y][positionAfter.z] = Object.assign({}, object);
+          _this3.retardedPhysicsEngine.objectsMatrix[positionAfter.x][positionAfter.y][positionAfter.z] = object;
           _this3.retardedPhysicsEngine.objectsMatrix[positionBefore.x][positionBefore.y][positionBefore.z] = 0;
           _this3.letAllFloatingObjectsFall();
         });

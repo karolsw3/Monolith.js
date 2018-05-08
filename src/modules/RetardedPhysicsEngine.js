@@ -7,6 +7,7 @@ class RetardedPhysicsEngine {
     this.sizeX = settings.sizeX
     this.sizeY = settings.sizeY
     this.sizeZ = settings.sizeZ
+    this.objectsAreAlreadyFalling = false
     this.objectsMatrix = this._create3DMatrix(this.sizeX, this.sizeY, this.sizeZ)
     this.objectsWhichShouldFall = []
   }
@@ -47,7 +48,7 @@ class RetardedPhysicsEngine {
     let groundPosition = 0
     for (let y = 0; y < this.sizeY; y++) {
       let object = this.objectsMatrix[x][y][z]
-      if (y > 0 && this.objectsMatrix[x][y][z] !== 0 && this.objectsMatrix[x][y - 1][z] === 0) {
+      if (y > 0 && object !== 0 && this.objectsMatrix[x][y - 1][z] === 0) {
         object.distanceAboveGround = y - groundPosition
         object.groundPosition = groundPosition
         object.previousPosition = {x, y, z}
@@ -60,26 +61,38 @@ class RetardedPhysicsEngine {
   }
 
   makeObjectsFall () {
-    for (let i = 0; i < this.objectsWhichShouldFall.length; i++) {
-      let object = this.objectsWhichShouldFall[i]
+    if (!this.objectsAreAlreadyFalling) {
+      this.objectsAreAlreadyFalling = true
+      for (let i = 0; i < this.objectsWhichShouldFall.length; i++) {
+        let object = this.objectsWhichShouldFall[i]
 
-      object.previousPosition = Object.assign({}, object.position)
-      for (let repetitions = 0; repetitions < 100; repetitions++) {
+        object.previousPosition = Object.assign({}, object.position)
+        object.isFalling = true
+        for (let repetitions = 0; repetitions < 100; repetitions++) {
+          setTimeout(() => {
+            object.position.y = object.groundPosition + object.distanceAboveGround - this._easeOutCubic(repetitions / 100) * object.distanceAboveGround
+          }, repetitions * 8)
+        }
+
         setTimeout(() => {
-          object.position.y = object.groundPosition + object.distanceAboveGround - this._easeOutCubic(repetitions / 100) * object.distanceAboveGround
-        }, repetitions * 8)
+          object.position.y = Math.round(object.position.y)
+          let actualPosition = this.utils.getObjectsFixedPosition(object.position, this.grid)
+          let previousPosition = this.utils.getObjectsFixedPosition(object.previousPosition, this.grid)
+          this.objectsMatrix[actualPosition.x][actualPosition.y][actualPosition.z] = object
+          this.objectsMatrix[previousPosition.x][previousPosition.y][previousPosition.z] = 0
+        }, 100 * 8)
+
+        setTimeout(() => {
+          object.isFalling = false
+        }, 1000)
       }
 
       setTimeout(() => {
-        object.position.y = Math.round(object.position.y)
-        let actualPosition = this.utils.getObjectsFixedPosition(object.position, this.grid)
-        let previousPosition = this.utils.getObjectsFixedPosition(object.previousPosition, this.grid)
-        this.objectsMatrix[actualPosition.x][actualPosition.y][actualPosition.z] = Object.assign({}, object)
-        this.objectsMatrix[previousPosition.x][previousPosition.y][previousPosition.z] = 0
-      }, 100 * 8)
-    }
+        this.objectsAreAlreadyFalling = false
+      }, 100 * 8 + 100)
 
-    this.objectsWhichShouldFall = []
+      this.objectsWhichShouldFall = []
+    }
   }
 
   _easeOutCubic (t) {

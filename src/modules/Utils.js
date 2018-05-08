@@ -4,9 +4,9 @@ class Utils {
     let objectY = Math.ceil(objectPosition.y / grid.height)
     let objectZ = -Math.round(objectPosition.z / grid.depth)
     return {
-      x: objectX,
+      x: Math.abs(objectX),
       y: objectY,
-      z: objectZ
+      z: Math.abs(objectZ)
     }
   }
 }

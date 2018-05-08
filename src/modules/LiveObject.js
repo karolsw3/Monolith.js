@@ -1,6 +1,7 @@
 class LiveObject {
   constructor (object) {
-    this.inMove = false
+    this.isMoving = false
+    this.isFalling = false
     this.horizontalCollision = false
 
     // Graphics
@@ -17,32 +18,30 @@ class LiveObject {
   }
 
   move (direction, callback) {
-    if (!this.inMove) {
-      this.inMove = true
-      this.previousPosition = {x: this.position.x, y: this.position.y, z: this.position.z}
-      for (let i = 0; i < 60; i++) {
-        setTimeout(() => {
-          switch (direction) {
-            case 'right':
-              this.position.x += this.width / 3 * 0.05
-              break
-            case 'left':
-              this.position.x -= this.width / 3 * 0.05
-              break
-            case 'forward':
-              this.position.z -= this.width / 3 * 0.05
-              break
-            case 'backward':
-              this.position.z += this.width / 3 * 0.05
-              break
-          }
-        }, 1 * i)
-      }
+    this.isMoving = true
+    this.previousPosition = {x: this.position.x, y: this.position.y, z: this.position.z}
+    for (let i = 0; i < 60; i++) {
       setTimeout(() => {
-        this.inMove = false
-        callback()
-      }, 61)
+        switch (direction) {
+          case 'right':
+            this.position.x += this.width / 3 * 0.05
+            break
+          case 'left':
+            this.position.x -= this.width / 3 * 0.05
+            break
+          case 'forward':
+            this.position.z -= this.width / 3 * 0.05
+            break
+          case 'backward':
+            this.position.z += this.width / 3 * 0.05
+            break
+        }
+      }, 1 * i)
     }
+    setTimeout(() => {
+      this.isMoving = false
+      callback()
+    }, 70)
   }
 }
 
