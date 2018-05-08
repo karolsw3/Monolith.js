@@ -8,6 +8,7 @@ class LiveObject {
     this.mesh.mouseDown = () => {}
     this.mesh.defaultColor = this.mesh.material.color
     this.position = this.mesh.position
+    this.width = this.mesh.geometry.parameters.width
     this.position.set = (x, y, z) => {
       this.position.x = x
       this.position.y = y
@@ -15,52 +16,32 @@ class LiveObject {
     }
   }
 
-  move (direction) {
-    if (!this.body.inMove) {
-      this.body.inMove = true
-      this.body.position.y += this.height * 0.3
-      this.body.previousPosition = {x: this.body.position.x, y: this.body.position.y, z: this.body.position.z}
+  move (direction, callback) {
+    if (!this.inMove) {
+      this.inMove = true
+      this.previousPosition = {x: this.position.x, y: this.position.y, z: this.position.z}
       for (let i = 0; i < 60; i++) {
         setTimeout(() => {
-          if (!this.horizontalCollision) {
-            switch (direction) {
-              case 'right':
-                this.body.position.x += this.width / 3 * 0.048
-                break
-              case 'left':
-                this.body.position.x -= this.width / 3 * 0.048
-                break
-              case 'forward':
-                this.body.position.z -= this.width / 3 * 0.048
-                break
-              case 'backward':
-                this.body.position.z += this.width / 3 * 0.048
-                break
-            }
-          } else {
-            this.body.position.set(this.body.previousPosition.x, this.body.previousPosition.y, this.body.previousPosition.z)
+          switch (direction) {
+            case 'right':
+              this.position.x += this.width / 3 * 0.05
+              break
+            case 'left':
+              this.position.x -= this.width / 3 * 0.05
+              break
+            case 'forward':
+              this.position.z -= this.width / 3 * 0.05
+              break
+            case 'backward':
+              this.position.z += this.width / 3 * 0.05
+              break
           }
         }, 1 * i)
-
-        setTimeout(() => {
-          this.body.velocity.y = 0
-        }, 110)
-
-        setTimeout(() => {
-          if (this.horizontalCollision) {
-            this.body.position.set(this.body.previousPosition.x, this.body.previousPosition.y, this.body.previousPosition.z)
-          }
-          this.body.position.x = Math.round(this.body.position.x)
-          this.body.velocity.x = 0
-          this.body.velocity.z = 0
-          this.body.position.z = Math.round(this.body.position.z)
-        }, 81)
-
-        setTimeout(() => {
-          this.body.inMove = false
-          this.horizontalCollision = false
-        }, 100)
       }
+      setTimeout(() => {
+        this.inMove = false
+        callback()
+      }, 61)
     }
   }
 }

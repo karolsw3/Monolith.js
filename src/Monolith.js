@@ -11,6 +11,7 @@ class Monolith {
     this.referenceObject = {}
     this.gravity = settings.gravity
     this.meshes = []
+    this.grid = settings.grid
     // Three.js
     this.scene = new THREE.Scene()
     this.loader = new THREE.ObjectLoader()
@@ -58,6 +59,17 @@ class Monolith {
         this.letAllFloatingObjectsFall()
       }
     }, 800)
+  }
+
+  moveObject (object, direction) {
+    let positionBefore = this.utils.getObjectsFixedPosition(object.position, this.grid)
+    if (!this.retardedPhysicsEngine.checkCollision(object, direction)) {
+      object.move(direction, () => {
+        let positionAfter = this.utils.getObjectsFixedPosition(object.position, this.grid)
+        this.retardedPhysicsEngine.objectsMatrix[positionAfter.x][positionAfter.y][positionAfter.z] = Object.assign({}, object)
+        this.retardedPhysicsEngine.objectsMatrix[positionBefore.x][positionBefore.y][positionBefore.z] = 0
+      })
+    }
   }
 
   createBlock (color) {

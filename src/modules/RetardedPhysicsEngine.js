@@ -16,6 +16,24 @@ class RetardedPhysicsEngine {
     this.objectsMatrix[position.x][position.y][position.z] = object
   }
 
+  checkCollision (object, direction) {
+    let position = this.utils.getObjectsFixedPosition(object.position, this.grid)
+    switch (direction) {
+      case 'top':
+        return (this.objectsMatrix[position.x][position.y + 1][position.z] !== 0)
+      case 'bottom':
+        return (this.objectsMatrix[position.x][position.y - 1][position.z] !== 0)
+      case 'left':
+        return (this.objectsMatrix[position.x + 1][position.y][position.z] !== 0)
+      case 'right':
+        return (this.objectsMatrix[position.x - 1][position.y][position.z] !== 0)
+      case 'forward':
+        return (this.objectsMatrix[position.x][position.y][position.z + 1] !== 0)
+      case 'backward':
+        return (this.objectsMatrix[position.x][position.y][position.z - 1] !== 0)
+    }
+  }
+
   checkAllObjectsIfTheyShouldFall () {
     this.objectsWhichShouldFall = []
     for (let x = 0; x < this.sizeX; x++) {
@@ -48,7 +66,7 @@ class RetardedPhysicsEngine {
       object.previousPosition = Object.assign({}, object.position)
       for (let repetitions = 0; repetitions < 100; repetitions++) {
         setTimeout(() => {
-          object.position.y = object.groundPosition + object.distanceAboveGround - this.easeOutCubic(repetitions / 100) * object.distanceAboveGround
+          object.position.y = object.groundPosition + object.distanceAboveGround - this._easeOutCubic(repetitions / 100) * object.distanceAboveGround
         }, repetitions * 8)
       }
 
@@ -64,7 +82,7 @@ class RetardedPhysicsEngine {
     this.objectsWhichShouldFall = []
   }
 
-  easeOutCubic (t) {
+  _easeOutCubic (t) {
     return Math.pow(t, 3)
   }
 

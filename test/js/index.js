@@ -39,16 +39,20 @@ window.addEventListener('keydown', (event) => {
   var keyCode = event.keyCode
   switch (keyCode) {
     case 68: // d
-      player.move('right')
+      monolith.moveObject(player, 'right')
+      monolith.letAllFloatingObjectsFall()
       break
     case 69: // e
-      player.move('forward')
+      monolith.moveObject(player, 'forward')
+      monolith.letAllFloatingObjectsFall()
       break
     case 65: // a
-      player.move('backward')
+      monolith.moveObject(player, 'backward')
+      monolith.letAllFloatingObjectsFall()
       break
     case 81: // q
-      player.move('left')
+      monolith.moveObject(player, 'left')
+      monolith.letAllFloatingObjectsFall()
       break
   }
 }, false)

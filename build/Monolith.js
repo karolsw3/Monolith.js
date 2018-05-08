@@ -44,6 +44,7 @@ var LiveObject = function () {
     this.mesh.mouseDown = function () {};
     this.mesh.defaultColor = this.mesh.material.color;
     this.position = this.mesh.position;
+    this.width = this.mesh.geometry.parameters.width;
     this.position.set = function (x, y, z) {
       _this.position.x = x;
       _this.position.y = y;
@@ -53,54 +54,34 @@ var LiveObject = function () {
 
   createClass(LiveObject, [{
     key: 'move',
-    value: function move(direction) {
+    value: function move(direction, callback) {
       var _this2 = this;
 
-      if (!this.body.inMove) {
-        this.body.inMove = true;
-        this.body.position.y += this.height * 0.3;
-        this.body.previousPosition = { x: this.body.position.x, y: this.body.position.y, z: this.body.position.z };
+      if (!this.inMove) {
+        this.inMove = true;
+        this.previousPosition = { x: this.position.x, y: this.position.y, z: this.position.z };
         for (var i = 0; i < 60; i++) {
           setTimeout(function () {
-            if (!_this2.horizontalCollision) {
-              switch (direction) {
-                case 'right':
-                  _this2.body.position.x += _this2.width / 3 * 0.048;
-                  break;
-                case 'left':
-                  _this2.body.position.x -= _this2.width / 3 * 0.048;
-                  break;
-                case 'forward':
-                  _this2.body.position.z -= _this2.width / 3 * 0.048;
-                  break;
-                case 'backward':
-                  _this2.body.position.z += _this2.width / 3 * 0.048;
-                  break;
-              }
-            } else {
-              _this2.body.position.set(_this2.body.previousPosition.x, _this2.body.previousPosition.y, _this2.body.previousPosition.z);
+            switch (direction) {
+              case 'right':
+                _this2.position.x += _this2.width / 3 * 0.05;
+                break;
+              case 'left':
+                _this2.position.x -= _this2.width / 3 * 0.05;
+                break;
+              case 'forward':
+                _this2.position.z -= _this2.width / 3 * 0.05;
+                break;
+              case 'backward':
+                _this2.position.z += _this2.width / 3 * 0.05;
+                break;
             }
           }, 1 * i);
-
-          setTimeout(function () {
-            _this2.body.velocity.y = 0;
-          }, 110);
-
-          setTimeout(function () {
-            if (_this2.horizontalCollision) {
-              _this2.body.position.set(_this2.body.previousPosition.x, _this2.body.previousPosition.y, _this2.body.previousPosition.z);
-            }
-            _this2.body.position.x = Math.round(_this2.body.position.x);
-            _this2.body.velocity.x = 0;
-            _this2.body.velocity.z = 0;
-            _this2.body.position.z = Math.round(_this2.body.position.z);
-          }, 81);
-
-          setTimeout(function () {
-            _this2.body.inMove = false;
-            _this2.horizontalCollision = false;
-          }, 100);
         }
+        setTimeout(function () {
+          _this2.inMove = false;
+          callback();
+        }, 61);
       }
     }
   }]);
@@ -148,6 +129,25 @@ var RetardedPhysicsEngine = function () {
       this.objectsMatrix[position.x][position.y][position.z] = object;
     }
   }, {
+    key: 'checkCollision',
+    value: function checkCollision(object, direction) {
+      var position = this.utils.getObjectsFixedPosition(object.position, this.grid);
+      switch (direction) {
+        case 'top':
+          return this.objectsMatrix[position.x][position.y + 1][position.z] !== 0;
+        case 'bottom':
+          return this.objectsMatrix[position.x][position.y - 1][position.z] !== 0;
+        case 'left':
+          return this.objectsMatrix[position.x + 1][position.y][position.z] !== 0;
+        case 'right':
+          return this.objectsMatrix[position.x - 1][position.y][position.z] !== 0;
+        case 'forward':
+          return this.objectsMatrix[position.x][position.y][position.z + 1] !== 0;
+        case 'backward':
+          return this.objectsMatrix[position.x][position.y][position.z - 1] !== 0;
+      }
+    }
+  }, {
     key: 'checkAllObjectsIfTheyShouldFall',
     value: function checkAllObjectsIfTheyShouldFall() {
       this.objectsWhichShouldFall = [];
@@ -186,7 +186,7 @@ var RetardedPhysicsEngine = function () {
 
         var _loop2 = function _loop2(repetitions) {
           setTimeout(function () {
-            object.position.y = object.groundPosition + object.distanceAboveGround - _this.easeOutCubic(repetitions / 100) * object.distanceAboveGround;
+            object.position.y = object.groundPosition + object.distanceAboveGround - _this._easeOutCubic(repetitions / 100) * object.distanceAboveGround;
           }, repetitions * 8);
         };
 
@@ -210,8 +210,8 @@ var RetardedPhysicsEngine = function () {
       this.objectsWhichShouldFall = [];
     }
   }, {
-    key: 'easeOutCubic',
-    value: function easeOutCubic(t) {
+    key: '_easeOutCubic',
+    value: function _easeOutCubic(t) {
       return Math.pow(t, 3);
     }
   }, {
@@ -244,6 +244,7 @@ var Monolith = function () {
     this.referenceObject = {};
     this.gravity = settings.gravity;
     this.meshes = [];
+    this.grid = settings.grid;
     // Three.js
     this.scene = new THREE.Scene();
     this.loader = new THREE.ObjectLoader();
@@ -304,6 +305,20 @@ var Monolith = function () {
       }, 800);
     }
   }, {
+    key: 'moveObject',
+    value: function moveObject(object, direction) {
+      var _this3 = this;
+
+      var positionBefore = this.utils.getObjectsFixedPosition(object.position, this.grid);
+      if (!this.retardedPhysicsEngine.checkCollision(object, direction)) {
+        object.move(direction, function () {
+          var positionAfter = _this3.utils.getObjectsFixedPosition(object.position, _this3.grid);
+          _this3.retardedPhysicsEngine.objectsMatrix[positionAfter.x][positionAfter.y][positionAfter.z] = Object.assign({}, object);
+          _this3.retardedPhysicsEngine.objectsMatrix[positionBefore.x][positionBefore.y][positionBefore.z] = 0;
+        });
+      }
+    }
+  }, {
     key: 'createBlock',
     value: function createBlock(color) {
       var geometry = new THREE.CubeGeometry(this.settings.blockWidth, this.settings.blockHeight, this.settings.blockWidth);
@@ -326,12 +341,12 @@ var Monolith = function () {
   }, {
     key: 'loadObjects',
     value: function loadObjects(objects) {
-      var _this3 = this;
+      var _this4 = this;
 
       var _loop = function _loop(i) {
-        _this3._getObjectJSON(objects[i].url, function (object) {
+        _this4._getObjectJSON(objects[i].url, function (object) {
           var liveObject = new LiveObject(object);
-          _this3.loadedObjects[objects[i].name] = liveObject;
+          _this4.loadedObjects[objects[i].name] = liveObject;
         });
       };
 
@@ -342,11 +357,11 @@ var Monolith = function () {
   }, {
     key: 'loadObject',
     value: function loadObject(url, x, y, z) {
-      var _this4 = this;
+      var _this5 = this;
 
       this._getObjectJSON(url, function (object) {
-        _this4.scene.add(object);
-        _this4.meshes.push(object);
+        _this5.scene.add(object);
+        _this5.meshes.push(object);
       });
     }
   }, {
@@ -432,7 +447,7 @@ var Monolith = function () {
   }, {
     key: 'smoothlySetCameraPosition',
     value: function smoothlySetCameraPosition(x, y, z) {
-      var _this5 = this;
+      var _this6 = this;
 
       var translationX = x - this.camera.position.x;
       var translationY = y - this.camera.position.y;
@@ -440,9 +455,9 @@ var Monolith = function () {
       var frames = 100;
       for (var i = 0; i < frames; i++) {
         setTimeout(function () {
-          _this5.camera.position.x += translationX / frames;
-          _this5.camera.position.y += translationY / frames;
-          _this5.camera.position.z += translationZ / frames;
+          _this6.camera.position.x += translationX / frames;
+          _this6.camera.position.y += translationY / frames;
+          _this6.camera.position.z += translationZ / frames;
         }, i * 1);
       }
     }
