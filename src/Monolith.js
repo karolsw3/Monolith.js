@@ -53,18 +53,11 @@ class Monolith {
   letAllFloatingObjectsFall () {
     this.retardedPhysicsEngine.checkAllObjectsIfTheyShouldFall()
     this.retardedPhysicsEngine.makeObjectsFall()
-    setTimeout(() => {
-      this.retardedPhysicsEngine.checkAllObjectsIfTheyShouldFall()
-      if (this.retardedPhysicsEngine.objectsWhichShouldFall.length > 0) {
-        this.letAllFloatingObjectsFall()
-      }
-    }, 800)
   }
 
   moveObject (object, direction) {
     let positionBefore = this.utils.getObjectsFixedPosition(object.position, this.grid)
     if (!this.retardedPhysicsEngine.checkCollision(object, direction) && !object.isMoving && !object.isFalling) {
-      console.log('the object is being moved')
       object.move(direction, () => {
         let positionAfter = this.utils.getObjectsFixedPosition(object.position, this.grid)
         this.retardedPhysicsEngine.objectsMatrix[positionAfter.x][positionAfter.y][positionAfter.z] = object

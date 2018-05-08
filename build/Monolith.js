@@ -161,15 +161,17 @@ var RetardedPhysicsEngine = function () {
     key: 'checkIfColumnShouldFall',
     value: function checkIfColumnShouldFall(x, z) {
       var groundPosition = 0;
+      var columnHeight = 0;
       for (var y = 0; y < this.sizeY; y++) {
         var object = this.objectsMatrix[x][y][z];
-        if (y > 0 && object !== 0 && this.objectsMatrix[x][y - 1][z] === 0) {
+        if (y > 0 && object !== 0 && (this.objectsMatrix[x][y - 1 - columnHeight][z] === 0 || this.objectsMatrix[x][y - 1][z] === 0)) {
           object.distanceAboveGround = y - groundPosition;
           object.groundPosition = groundPosition;
           object.previousPosition = { x: x, y: y, z: z };
           this.objectsWhichShouldFall.push(object);
-          break;
-        } else if (this.objectsMatrix[x][y][z] !== 0) {
+          columnHeight++;
+        }
+        if (object !== 0) {
           groundPosition++;
         }
       }
@@ -306,30 +308,21 @@ var Monolith = function () {
   }, {
     key: 'letAllFloatingObjectsFall',
     value: function letAllFloatingObjectsFall() {
-      var _this2 = this;
-
       this.retardedPhysicsEngine.checkAllObjectsIfTheyShouldFall();
       this.retardedPhysicsEngine.makeObjectsFall();
-      setTimeout(function () {
-        _this2.retardedPhysicsEngine.checkAllObjectsIfTheyShouldFall();
-        if (_this2.retardedPhysicsEngine.objectsWhichShouldFall.length > 0) {
-          _this2.letAllFloatingObjectsFall();
-        }
-      }, 800);
     }
   }, {
     key: 'moveObject',
     value: function moveObject(object, direction) {
-      var _this3 = this;
+      var _this2 = this;
 
       var positionBefore = this.utils.getObjectsFixedPosition(object.position, this.grid);
       if (!this.retardedPhysicsEngine.checkCollision(object, direction) && !object.isMoving && !object.isFalling) {
-        console.log('the object is being moved');
         object.move(direction, function () {
-          var positionAfter = _this3.utils.getObjectsFixedPosition(object.position, _this3.grid);
-          _this3.retardedPhysicsEngine.objectsMatrix[positionAfter.x][positionAfter.y][positionAfter.z] = object;
-          _this3.retardedPhysicsEngine.objectsMatrix[positionBefore.x][positionBefore.y][positionBefore.z] = 0;
-          _this3.letAllFloatingObjectsFall();
+          var positionAfter = _this2.utils.getObjectsFixedPosition(object.position, _this2.grid);
+          _this2.retardedPhysicsEngine.objectsMatrix[positionAfter.x][positionAfter.y][positionAfter.z] = object;
+          _this2.retardedPhysicsEngine.objectsMatrix[positionBefore.x][positionBefore.y][positionBefore.z] = 0;
+          _this2.letAllFloatingObjectsFall();
         });
       }
     }
@@ -356,12 +349,12 @@ var Monolith = function () {
   }, {
     key: 'loadObjects',
     value: function loadObjects(objects) {
-      var _this4 = this;
+      var _this3 = this;
 
       var _loop = function _loop(i) {
-        _this4._getObjectJSON(objects[i].url, function (object) {
+        _this3._getObjectJSON(objects[i].url, function (object) {
           var liveObject = new LiveObject(object);
-          _this4.loadedObjects[objects[i].name] = liveObject;
+          _this3.loadedObjects[objects[i].name] = liveObject;
         });
       };
 
@@ -372,11 +365,11 @@ var Monolith = function () {
   }, {
     key: 'loadObject',
     value: function loadObject(url, x, y, z) {
-      var _this5 = this;
+      var _this4 = this;
 
       this._getObjectJSON(url, function (object) {
-        _this5.scene.add(object);
-        _this5.meshes.push(object);
+        _this4.scene.add(object);
+        _this4.meshes.push(object);
       });
     }
   }, {
@@ -462,7 +455,7 @@ var Monolith = function () {
   }, {
     key: 'smoothlySetCameraPosition',
     value: function smoothlySetCameraPosition(x, y, z) {
-      var _this6 = this;
+      var _this5 = this;
 
       var translationX = x - this.camera.position.x;
       var translationY = y - this.camera.position.y;
@@ -470,9 +463,9 @@ var Monolith = function () {
       var frames = 100;
       for (var i = 0; i < frames; i++) {
         setTimeout(function () {
-          _this6.camera.position.x += translationX / frames;
-          _this6.camera.position.y += translationY / frames;
-          _this6.camera.position.z += translationZ / frames;
+          _this5.camera.position.x += translationX / frames;
+          _this5.camera.position.y += translationY / frames;
+          _this5.camera.position.z += translationZ / frames;
         }, i * 1);
       }
     }

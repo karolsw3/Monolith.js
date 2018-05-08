@@ -46,15 +46,17 @@ class RetardedPhysicsEngine {
 
   checkIfColumnShouldFall (x, z) {
     let groundPosition = 0
+    let columnHeight = 0
     for (let y = 0; y < this.sizeY; y++) {
       let object = this.objectsMatrix[x][y][z]
-      if (y > 0 && object !== 0 && this.objectsMatrix[x][y - 1][z] === 0) {
+      if (y > 0 && object !== 0 && (this.objectsMatrix[x][y - 1 - columnHeight][z] === 0 || this.objectsMatrix[x][y - 1][z] === 0)) {
         object.distanceAboveGround = y - groundPosition
         object.groundPosition = groundPosition
         object.previousPosition = {x, y, z}
         this.objectsWhichShouldFall.push(object)
-        break
-      } else if (this.objectsMatrix[x][y][z] !== 0) {
+        columnHeight++
+      }
+      if (object !== 0) {
         groundPosition++
       }
     }
