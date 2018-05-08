@@ -17,8 +17,8 @@ monolith.init()
 for (let x = 0; x < 8; x++) {
   for (let z = 0; z < 8; z++) {
     monolith.placeObject(monolith.createBlock(0x443355, 0), x, 0, z)
-    for (let i = 2; i < Math.round(Math.random() * 4 + 2); i++) {
-      if (Math.round(Math.random() * 3) === 1) {
+    for (let i = 2; i < Math.round(Math.random() * 4 + 4); i++) {
+      if (Math.round(Math.random() * 2) === 1) {
         monolith.placeObject(monolith.createBlock(0xff8749, 700), x, i, z)
       }
     }
@@ -40,19 +40,15 @@ window.addEventListener('keydown', (event) => {
   switch (keyCode) {
     case 68: // d
       monolith.moveObject(player, 'right')
-      monolith.letAllFloatingObjectsFall()
       break
     case 69: // e
       monolith.moveObject(player, 'forward')
-      monolith.letAllFloatingObjectsFall()
       break
     case 65: // a
       monolith.moveObject(player, 'backward')
-      monolith.letAllFloatingObjectsFall()
       break
     case 81: // q
       monolith.moveObject(player, 'left')
-      monolith.letAllFloatingObjectsFall()
       break
   }
 }, false)

@@ -68,6 +68,7 @@ class Monolith {
         let positionAfter = this.utils.getObjectsFixedPosition(object.position, this.grid)
         this.retardedPhysicsEngine.objectsMatrix[positionAfter.x][positionAfter.y][positionAfter.z] = Object.assign({}, object)
         this.retardedPhysicsEngine.objectsMatrix[positionBefore.x][positionBefore.y][positionBefore.z] = 0
+        this.letAllFloatingObjectsFall()
       })
     }
   }
@@ -157,11 +158,11 @@ class Monolith {
     if (typeof intersects[0] === 'object') {
       if (this.intersectedObject.id !== intersects[0].object.id) {
         try {
-          this.intersectedObject.material.color.setHex(this.intersectedObject.defaultColor)
+          this.intersectedObject.material.color = {r: this.intersectedObject.defaultColor.r, g: this.intersectedObject.defaultColor.g, b: this.intersectedObject.defaultColor.b}
         } catch (e) {}
         this.intersectedObject = intersects[0].object
       } else {
-        intersects[0].object.material.color.setHex(0xffffff)
+        intersects[0].object.material.color = {r: 255, g: 255, b: 255}
       }
     }
   }
