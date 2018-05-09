@@ -161,15 +161,15 @@ var RetardedPhysicsEngine = function () {
     key: 'checkIfColumnShouldFall',
     value: function checkIfColumnShouldFall(x, z) {
       var groundPosition = 0;
-      var columnHeight = 0;
+      var isTheColumnFloating = false;
       for (var y = 0; y < this.sizeY; y++) {
         var object = this.objectsMatrix[x][y][z];
-        if (y > 0 && object !== 0 && (this.objectsMatrix[x][y - 1 - columnHeight][z] === 0 || this.objectsMatrix[x][y - 1][z] === 0)) {
+        if (y > 0 && object !== 0 && (this.objectsMatrix[x][y - 1][z] === 0 || isTheColumnFloating)) {
           object.distanceAboveGround = y - groundPosition;
           object.groundPosition = groundPosition;
           object.previousPosition = { x: x, y: y, z: z };
           this.objectsWhichShouldFall.push(object);
-          columnHeight++;
+          isTheColumnFloating = true;
         }
         if (object !== 0) {
           groundPosition++;
@@ -323,7 +323,9 @@ var Monolith = function () {
           var positionAfter = _this2.utils.getObjectsFixedPosition(object.position, _this2.grid);
           _this2.retardedPhysicsEngine.objectsMatrix[positionAfter.x][positionAfter.y][positionAfter.z] = object;
           _this2.retardedPhysicsEngine.objectsMatrix[positionBefore.x][positionBefore.y][positionBefore.z] = 0;
-          _this2.letAllFloatingObjectsFall();
+          if (positionAfter.y > 0 && _this2.retardedPhysicsEngine.objectsMatrix[positionAfter.x][positionAfter.y - 1][positionAfter.z]) {
+            _this2.letAllFloatingObjectsFall();
+          }
         });
       }
     }
