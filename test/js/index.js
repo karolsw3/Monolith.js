@@ -15,18 +15,11 @@ var monolith = new Monolith({
 
 monolith.init()
 
-monolith.placeObject(monolith.createBlock(0xff3355), 4, 5, 4)
-monolith.placeObject(monolith.createBlock(0xff3355), 4, 7, 4)
-monolith.placeObject(monolith.createBlock(0xff3355), 4, 8, 4)
-
-monolith.placeObject(monolith.createBlock(0xff3355), 6, 5, 4)
-monolith.placeObject(monolith.createBlock(0xff3355), 6, 6, 4)
-monolith.placeObject(monolith.createBlock(0xff3355), 6, 9, 4)
-
-monolith.placeObject(monolith.createBlock(0xff3355), 8, 4, 4)
-monolith.placeObject(monolith.createBlock(0xff3355), 8, 6, 4)
-monolith.placeObject(monolith.createBlock(0xff3355), 8, 8, 4)
-monolith.placeObject(monolith.createBlock(0xff3355), 8, 10, 4)
+for (let x = 0; x < 30; x++) {
+  for (let z = 0; z < 30; z++) {
+    monolith.placeObject(monolith.createBlock(0xff4433), x, 0, z)
+  }
+}
 
 let player = monolith.createBlock(0x44ff33)
 player.mouseDown = () => {
@@ -34,7 +27,7 @@ player.mouseDown = () => {
 }
 
 monolith.attachCamera(player)
-monolith.placeObject(player, 7, 0, 5)
+monolith.placeObject(player, 7, 1, 5)
 monolith.letAllFloatingObjectsFall()
 
 // monolith.loadObject('https://api.myjson.com/bins/1ewmje', -12, 14, -12)

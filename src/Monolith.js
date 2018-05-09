@@ -10,7 +10,6 @@ class Monolith {
     this.intersectableObjects = []
     this.referenceObject = {}
     this.gravity = settings.gravity
-    this.meshes = []
     this.grid = settings.grid
     // Three.js
     this.scene = new THREE.Scene()
@@ -107,10 +106,9 @@ class Monolith {
     }
   }
 
-  loadObject (url, x, y, z) {
+  loadObject (url) {
     this._getObjectJSON(url, (object) => {
       this.scene.add(object)
-      this.meshes.push(object)
     })
   }
 
@@ -119,7 +117,6 @@ class Monolith {
     let h = this.grid.height
 
     object.position.set(-x * w, y * h, -z * w)
-    this.meshes.push(object.mesh)
 
     this.intersectableObjects.push(object.mesh)
     this.scene.add(object.mesh)

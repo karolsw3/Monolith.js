@@ -258,7 +258,6 @@ var Monolith = function () {
     this.intersectableObjects = [];
     this.referenceObject = {};
     this.gravity = settings.gravity;
-    this.meshes = [];
     this.grid = settings.grid;
     // Three.js
     this.scene = new THREE.Scene();
@@ -372,12 +371,11 @@ var Monolith = function () {
     }
   }, {
     key: 'loadObject',
-    value: function loadObject(url, x, y, z) {
+    value: function loadObject(url) {
       var _this4 = this;
 
       this._getObjectJSON(url, function (object) {
         _this4.scene.add(object);
-        _this4.meshes.push(object);
       });
     }
   }, {
@@ -387,7 +385,6 @@ var Monolith = function () {
       var h = this.grid.height;
 
       object.position.set(-x * w, y * h, -z * w);
-      this.meshes.push(object.mesh);
 
       this.intersectableObjects.push(object.mesh);
       this.scene.add(object.mesh);
