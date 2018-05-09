@@ -1,14 +1,15 @@
 var monolith = new Monolith({
-  backgroundColor: 'rgb(53,12,63)',
-  blockWidth: 3,
-  blockHeight: 1,
+  backgroundColor: 'rgb(35, 136, 219)',
   renderDistance: 4,
   gravity: true,
+  sizeX: 100,
+  sizeY: 100,
+  sizeZ: 100,
   grid: {
     width: 3,
     height: 1,
     depth: 3,
-    visible: false
+    visible: true
   }
 })
 
@@ -17,7 +18,7 @@ monolith.init()
 for (let x = 0; x < 8; x++) {
   for (let z = 0; z < 8; z++) {
     monolith.placeObject(monolith.createBlock(0x443355), x, 0, z)
-    for (let i = 2; i < Math.round(Math.random() * 4 + 2); i++) {
+    for (let i = 5; i < Math.round(Math.random() * 4 + 8); i++) {
       if (Math.round(Math.random() * 3) === 1) {
         monolith.placeObject(monolith.createBlock(0xff8749), x, i, z)
       }

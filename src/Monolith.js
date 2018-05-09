@@ -24,9 +24,9 @@ class Monolith {
     // RetardedPhysicsEngine.js
     this.retardedPhysicsEngine = new RetardedPhysicsEngine({
       grid: this.settings.grid,
-      sizeX: 10,
-      sizeY: 100,
-      sizeZ: 10
+      sizeX: this.settings.sizeX,
+      sizeY: this.settings.sizeY,
+      sizeZ: this.settings.sizeZ
     })
 
     this._animate = this._animate.bind(this)
@@ -35,10 +35,11 @@ class Monolith {
 
   init () {
     this.scene.background = new THREE.Color(this.settings.backgroundColor)
-    this.camera.position.set(this.settings.blockWidth, this.settings.blockWidth, this.settings.blockWidth)
+    this.camera.position.set(this.grid.width, this.grid.width, this.grid.width)
     this.camera.lookAt(this.scene.position)
     this.camera.position.y = 20
     this._addLights()
+    this._addGrid()
     this.renderer.setSize(window.innerWidth, window.innerHeight)
     this.renderer.shadowMap.enabled = true
     document.body.appendChild(this.renderer.domElement)
@@ -68,7 +69,7 @@ class Monolith {
   }
 
   createBlock (color) {
-    let geometry = new THREE.CubeGeometry(this.settings.blockWidth, this.settings.blockHeight, this.settings.blockWidth)
+    let geometry = new THREE.CubeGeometry(this.grid.width, this.grid.height, this.grid.depth)
     let material = new THREE.MeshLambertMaterial({color})
     let object = {}
     object.geometry = geometry
@@ -107,8 +108,8 @@ class Monolith {
   }
 
   placeObject (object, x, y, z) {
-    let w = this.settings.blockWidth
-    let h = this.settings.blockHeight
+    let w = this.grid.width
+    let h = this.grid.height
 
     object.position.set(-x * w, y * h, -z * w)
     this.meshes.push(object.mesh)
@@ -144,6 +145,15 @@ class Monolith {
     this.referenceObject = object
   }
 
+  _addGrid () {
+    let k = 10
+    let size = this.settings.sizeX * this.grid.width * k
+    let divisions = this.settings.sizeX * k
+    let gridHelper = new THREE.GridHelper(size, divisions)
+    gridHelper.position.set(this.grid.width / 2, this.grid.height / 2, this.grid.depth / 2)
+    this.scene.add(gridHelper)
+  }
+
   mouseMove (event) {
     event.preventDefault()
     let mouse3D = new THREE.Vector3((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1, 0.5)
@@ -175,10 +185,10 @@ class Monolith {
     let position = this.utils.getObjectsFixedPosition(object.position, this.settings.grid)
     let referencePosition = this.utils.getObjectsFixedPosition(this.referenceObject.position, this.settings.grid)
     return (
-      position.x > referencePosition.x - this.settings.renderDistance * this.settings.blockWidth &&
-      position.x < referencePosition.x + this.settings.renderDistance * this.settings.blockWidth &&
-      position.z > referencePosition.z - this.settings.renderDistance * this.settings.blockWidth &&
-      position.z < referencePosition.z + this.settings.renderDistance * this.settings.blockWidth
+      position.x > referencePosition.x - this.settings.renderDistance * this.grid.width &&
+      position.x < referencePosition.x + this.settings.renderDistance * this.grid.width &&
+      position.z > referencePosition.z - this.settings.renderDistance * this.grid.width &&
+      position.z < referencePosition.z + this.settings.renderDistance * this.grid.width
     )
   }
 

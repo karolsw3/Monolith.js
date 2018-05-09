@@ -272,9 +272,9 @@ var Monolith = function () {
     // RetardedPhysicsEngine.js
     this.retardedPhysicsEngine = new RetardedPhysicsEngine({
       grid: this.settings.grid,
-      sizeX: 10,
-      sizeY: 100,
-      sizeZ: 10
+      sizeX: this.settings.sizeX,
+      sizeY: this.settings.sizeY,
+      sizeZ: this.settings.sizeZ
     });
 
     this._animate = this._animate.bind(this);
@@ -287,10 +287,11 @@ var Monolith = function () {
       var _this = this;
 
       this.scene.background = new THREE.Color(this.settings.backgroundColor);
-      this.camera.position.set(this.settings.blockWidth, this.settings.blockWidth, this.settings.blockWidth);
+      this.camera.position.set(this.grid.width, this.grid.width, this.grid.width);
       this.camera.lookAt(this.scene.position);
       this.camera.position.y = 20;
       this._addLights();
+      this._addGrid();
       this.renderer.setSize(window.innerWidth, window.innerHeight);
       this.renderer.shadowMap.enabled = true;
       document.body.appendChild(this.renderer.domElement);
@@ -329,7 +330,7 @@ var Monolith = function () {
   }, {
     key: 'createBlock',
     value: function createBlock(color) {
-      var geometry = new THREE.CubeGeometry(this.settings.blockWidth, this.settings.blockHeight, this.settings.blockWidth);
+      var geometry = new THREE.CubeGeometry(this.grid.width, this.grid.height, this.grid.depth);
       var material = new THREE.MeshLambertMaterial({ color: color });
       var object = {};
       object.geometry = geometry;
@@ -375,8 +376,8 @@ var Monolith = function () {
   }, {
     key: 'placeObject',
     value: function placeObject(object, x, y, z) {
-      var w = this.settings.blockWidth;
-      var h = this.settings.blockHeight;
+      var w = this.grid.width;
+      var h = this.grid.height;
 
       object.position.set(-x * w, y * h, -z * w);
       this.meshes.push(object.mesh);
@@ -417,6 +418,16 @@ var Monolith = function () {
       this.referenceObject = object;
     }
   }, {
+    key: '_addGrid',
+    value: function _addGrid() {
+      var k = 10;
+      var size = this.settings.sizeX * this.grid.width * k;
+      var divisions = this.settings.sizeX * k;
+      var gridHelper = new THREE.GridHelper(size, divisions);
+      gridHelper.position.set(this.grid.width / 2, this.grid.height / 2, this.grid.depth / 2);
+      this.scene.add(gridHelper);
+    }
+  }, {
     key: 'mouseMove',
     value: function mouseMove(event) {
       event.preventDefault();
@@ -450,7 +461,7 @@ var Monolith = function () {
     value: function _checkIfObjectIsWithinRenderDistance(object) {
       var position = this.utils.getObjectsFixedPosition(object.position, this.settings.grid);
       var referencePosition = this.utils.getObjectsFixedPosition(this.referenceObject.position, this.settings.grid);
-      return position.x > referencePosition.x - this.settings.renderDistance * this.settings.blockWidth && position.x < referencePosition.x + this.settings.renderDistance * this.settings.blockWidth && position.z > referencePosition.z - this.settings.renderDistance * this.settings.blockWidth && position.z < referencePosition.z + this.settings.renderDistance * this.settings.blockWidth;
+      return position.x > referencePosition.x - this.settings.renderDistance * this.grid.width && position.x < referencePosition.x + this.settings.renderDistance * this.grid.width && position.z > referencePosition.z - this.settings.renderDistance * this.grid.width && position.z < referencePosition.z + this.settings.renderDistance * this.grid.width;
     }
   }, {
     key: 'smoothlySetCameraPosition',
