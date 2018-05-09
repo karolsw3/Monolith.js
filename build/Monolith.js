@@ -323,8 +323,13 @@ var Monolith = function () {
           var positionAfter = _this2.utils.getObjectsFixedPosition(object.position, _this2.grid);
           _this2.retardedPhysicsEngine.objectsMatrix[positionAfter.x][positionAfter.y][positionAfter.z] = object;
           _this2.retardedPhysicsEngine.objectsMatrix[positionBefore.x][positionBefore.y][positionBefore.z] = 0;
+
           if (positionAfter.y > 0 && _this2.retardedPhysicsEngine.objectsMatrix[positionAfter.x][positionAfter.y - 1][positionAfter.z]) {
             _this2.letAllFloatingObjectsFall();
+          }
+
+          if (object.cameraAttached) {
+            _this2.smoothlySetCameraPosition(positionAfter);
           }
         });
       }
@@ -467,18 +472,16 @@ var Monolith = function () {
     }
   }, {
     key: 'smoothlySetCameraPosition',
-    value: function smoothlySetCameraPosition(x, y, z) {
+    value: function smoothlySetCameraPosition(position) {
       var _this5 = this;
 
-      var translationX = x - this.camera.position.x;
-      var translationY = y - this.camera.position.y;
-      var translationZ = z - this.camera.position.z;
+      var translationX = -position.x * this.grid.width - this.camera.position.x;
+      var translationZ = -position.z * this.grid.depth - this.camera.position.z;
       var frames = 100;
       for (var i = 0; i < frames; i++) {
         setTimeout(function () {
-          _this5.camera.position.x += translationX / frames;
-          _this5.camera.position.y += translationY / frames;
-          _this5.camera.position.z += translationZ / frames;
+          _this5.camera.position.x += translationX / frames + 0.2;
+          _this5.camera.position.z += translationZ / frames + 0.2;
         }, i * 1);
       }
     }

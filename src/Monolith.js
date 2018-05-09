@@ -63,8 +63,13 @@ class Monolith {
         let positionAfter = this.utils.getObjectsFixedPosition(object.position, this.grid)
         this.retardedPhysicsEngine.objectsMatrix[positionAfter.x][positionAfter.y][positionAfter.z] = object
         this.retardedPhysicsEngine.objectsMatrix[positionBefore.x][positionBefore.y][positionBefore.z] = 0
+
         if (positionAfter.y > 0 && this.retardedPhysicsEngine.objectsMatrix[positionAfter.x][positionAfter.y - 1][positionAfter.z]) {
           this.letAllFloatingObjectsFall()
+        }
+
+        if (object.cameraAttached) {
+          this.smoothlySetCameraPosition(positionAfter)
         }
       })
     }
@@ -194,16 +199,14 @@ class Monolith {
     )
   }
 
-  smoothlySetCameraPosition (x, y, z) {
-    let translationX = x - this.camera.position.x
-    let translationY = y - this.camera.position.y
-    let translationZ = z - this.camera.position.z
+  smoothlySetCameraPosition (position) {
+    let translationX = -position.x * this.grid.width - this.camera.position.x
+    let translationZ = -position.z * this.grid.depth - this.camera.position.z
     let frames = 100
     for (let i = 0; i < frames; i++) {
       setTimeout(() => {
-        this.camera.position.x += translationX / frames
-        this.camera.position.y += translationY / frames
-        this.camera.position.z += translationZ / frames
+        this.camera.position.x += translationX / frames + 0.2
+        this.camera.position.z += translationZ / frames + 0.2
       }, i * 1)
     }
   }
