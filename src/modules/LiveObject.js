@@ -6,7 +6,9 @@ class LiveObject {
 
     // Graphics
     this.mesh = new THREE.Mesh(object.geometry, object.material)
-    this.mesh.mouseDown = () => {}
+    this.mesh.mouseDown = () => {
+      console.log('test')
+    }
     this.mesh.defaultColor = this.mesh.material.color
     this.position = this.mesh.position
     this.width = this.mesh.geometry.parameters.width

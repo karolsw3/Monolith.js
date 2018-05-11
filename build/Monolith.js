@@ -42,7 +42,9 @@ var LiveObject = function () {
 
     // Graphics
     this.mesh = new THREE.Mesh(object.geometry, object.material);
-    this.mesh.mouseDown = function () {};
+    this.mesh.mouseDown = function () {
+      console.log('test');
+    };
     this.mesh.defaultColor = this.mesh.material.color;
     this.position = this.mesh.position;
     this.width = this.mesh.geometry.parameters.width;
@@ -164,7 +166,7 @@ var RetardedPhysicsEngine = function () {
       var isTheColumnFloating = false;
       for (var y = 0; y < this.sizeY; y++) {
         var object = this.objectsMatrix[x][y][z];
-        if (y > 0 && object !== 0 && (this.objectsMatrix[x][y - 1][z] === 0 || isTheColumnFloating)) {
+        if (y > 0 && object !== 0 && (this.objectsMatrix[x][y - 1][z] === 0 || isTheColumnFloating) && !object.isFalling) {
           object.distanceAboveGround = y - groundPosition;
           object.groundPosition = groundPosition;
           object.previousPosition = { x: x, y: y, z: z };
@@ -181,53 +183,47 @@ var RetardedPhysicsEngine = function () {
     value: function makeObjectsFall() {
       var _this = this;
 
-      if (!this.objectsAreAlreadyFalling) {
-        this.objectsAreAlreadyFalling = true;
+      this.objectsAreAlreadyFalling = true;
 
-        var _loop = function _loop(i) {
-          var object = _this.objectsWhichShouldFall[i];
+      var _loop = function _loop(i) {
+        var object = _this.objectsWhichShouldFall[i];
 
-          object.previousPosition = Object.assign({}, object.position);
-          object.isFalling = true;
+        object.previousPosition = Object.assign({}, object.position);
+        object.isFalling = true;
 
-          var _loop2 = function _loop2(repetitions) {
-            setTimeout(function () {
-              object.position.y = object.groundPosition + object.distanceAboveGround - _this._easeOutCubic(repetitions / 100) * object.distanceAboveGround;
-            }, repetitions * 8);
-          };
-
-          for (var repetitions = 0; repetitions < 100; repetitions++) {
-            _loop2(repetitions);
-          }
-
+        var _loop2 = function _loop2(repetitions) {
           setTimeout(function () {
-            object.position.y = Math.round(object.position.y);
-            var actualPosition = _this.utils.getObjectsFixedPosition(object.position, _this.grid);
-            var previousPosition = _this.utils.getObjectsFixedPosition(object.previousPosition, _this.grid);
-            _this.objectsMatrix[actualPosition.x][actualPosition.y][actualPosition.z] = object;
-            _this.objectsMatrix[previousPosition.x][previousPosition.y][previousPosition.z] = 0;
-          }, 100 * 8);
-
-          setTimeout(function () {
-            object.isFalling = false;
-          }, 1000);
+            object.position.y = object.groundPosition + object.distanceAboveGround - _this._easeOutCubic(repetitions / 100) * object.distanceAboveGround;
+          }, repetitions * object.position.y);
         };
 
-        for (var i = 0; i < this.objectsWhichShouldFall.length; i++) {
-          _loop(i);
+        for (var repetitions = 0; repetitions < 100; repetitions++) {
+          _loop2(repetitions);
         }
 
         setTimeout(function () {
-          _this.objectsAreAlreadyFalling = false;
-        }, 100 * 8 + 100);
+          object.position.y = Math.round(object.position.y);
+          var actualPosition = _this.utils.getObjectsFixedPosition(object.position, _this.grid);
+          var previousPosition = _this.utils.getObjectsFixedPosition(object.previousPosition, _this.grid);
+          _this.objectsMatrix[actualPosition.x][actualPosition.y][actualPosition.z] = object;
+          _this.objectsMatrix[previousPosition.x][previousPosition.y][previousPosition.z] = 0;
+        }, 100 * object.position.y);
 
-        this.objectsWhichShouldFall = [];
+        setTimeout(function () {
+          object.isFalling = false;
+        }, 110 * object.position.y);
+      };
+
+      for (var i = 0; i < this.objectsWhichShouldFall.length; i++) {
+        _loop(i);
       }
+
+      this.objectsWhichShouldFall = [];
     }
   }, {
     key: '_easeOutCubic',
     value: function _easeOutCubic(t) {
-      return Math.pow(t, 3);
+      return Math.pow(t, 2);
     }
   }, {
     key: '_create3DMatrix',

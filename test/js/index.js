@@ -15,9 +15,13 @@ var monolith = new Monolith({
 
 monolith.init()
 
-for (let x = 0; x < 30; x++) {
-  for (let z = 0; z < 30; z++) {
-    monolith.placeObject(monolith.createBlock(0xff4433), x, 0, z)
+for (let x = 0; x < 10; x++) {
+  for (let z = 0; z < 10; z++) {
+    let block = monolith.createBlock(0xff4433)
+    block.mesh.mouseDown = () => {
+      monolith.placeObject(monolith.createBlock(0xff4433), x, 10, z)
+    }
+    monolith.placeObject(block, x, 8, z)
   }
 }
 
@@ -27,10 +31,10 @@ player.mouseDown = () => {
 }
 
 monolith.attachCamera(player)
-monolith.placeObject(player, 7, 1, 5)
+monolith.placeObject(player, 7, 12, 5)
 monolith.letAllFloatingObjectsFall()
 
-// monolith.loadObject('https://api.myjson.com/bins/1ewmje', -12, 14, -12)
+monolith.loadObject('https://api.myjson.com/bins/1ewmje', -12, 14, -12)
 window.addEventListener('keydown', (event) => {
   var keyCode = event.keyCode
   switch (keyCode) {
