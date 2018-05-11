@@ -16,12 +16,9 @@ var monolith = new Monolith({
 monolith.init()
 
 for (let x = 0; x < 10; x++) {
-  for (let z = 0; z < 10; z++) {
+  for (let y = x; y < 10; y++) {
     let block = monolith.createBlock(0xff4433)
-    block.mesh.mouseDown = () => {
-      monolith.placeObject(monolith.createBlock(0xff4433), x, 10, z)
-    }
-    monolith.placeObject(block, x, 8, z)
+    monolith.placeObject(block, x, y, 2)
   }
 }
 
@@ -31,7 +28,7 @@ player.mouseDown = () => {
 }
 
 monolith.attachCamera(player)
-monolith.placeObject(player, 7, 12, 5)
+monolith.placeObject(player, 0, 12, 2)
 monolith.letAllFloatingObjectsFall()
 
 monolith.loadObject('https://api.myjson.com/bins/1ewmje', -12, 14, -12)

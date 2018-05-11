@@ -42,9 +42,7 @@ var LiveObject = function () {
 
     // Graphics
     this.mesh = new THREE.Mesh(object.geometry, object.material);
-    this.mesh.mouseDown = function () {
-      console.log('test');
-    };
+    this.mesh.mouseDown = function () {};
     this.mesh.defaultColor = this.mesh.material.color;
     this.position = this.mesh.position;
     this.width = this.mesh.geometry.parameters.width;
@@ -194,7 +192,7 @@ var RetardedPhysicsEngine = function () {
         var _loop2 = function _loop2(repetitions) {
           setTimeout(function () {
             object.position.y = object.groundPosition + object.distanceAboveGround - _this._easeOutCubic(repetitions / 100) * object.distanceAboveGround;
-          }, repetitions * object.position.y);
+          }, repetitions * object.distanceAboveGround);
         };
 
         for (var repetitions = 0; repetitions < 100; repetitions++) {
@@ -207,11 +205,11 @@ var RetardedPhysicsEngine = function () {
           var previousPosition = _this.utils.getObjectsFixedPosition(object.previousPosition, _this.grid);
           _this.objectsMatrix[actualPosition.x][actualPosition.y][actualPosition.z] = object;
           _this.objectsMatrix[previousPosition.x][previousPosition.y][previousPosition.z] = 0;
-        }, 100 * object.position.y);
+        }, 100 * object.distanceAboveGround);
 
         setTimeout(function () {
           object.isFalling = false;
-        }, 110 * object.position.y);
+        }, 110 * object.distanceAboveGround);
       };
 
       for (var i = 0; i < this.objectsWhichShouldFall.length; i++) {
@@ -319,7 +317,7 @@ var Monolith = function () {
           _this2.retardedPhysicsEngine.objectsMatrix[positionAfter.x][positionAfter.y][positionAfter.z] = object;
           _this2.retardedPhysicsEngine.objectsMatrix[positionBefore.x][positionBefore.y][positionBefore.z] = 0;
 
-          if (positionAfter.y > 0 && _this2.retardedPhysicsEngine.objectsMatrix[positionAfter.x][positionAfter.y - 1][positionAfter.z]) {
+          if (positionAfter.y > 0 && _this2.retardedPhysicsEngine.objectsMatrix[positionAfter.x][positionAfter.y - 1][positionAfter.z] === 0) {
             _this2.letAllFloatingObjectsFall();
           }
 

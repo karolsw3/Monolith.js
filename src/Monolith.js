@@ -63,7 +63,7 @@ class Monolith {
         this.retardedPhysicsEngine.objectsMatrix[positionAfter.x][positionAfter.y][positionAfter.z] = object
         this.retardedPhysicsEngine.objectsMatrix[positionBefore.x][positionBefore.y][positionBefore.z] = 0
 
-        if (positionAfter.y > 0 && this.retardedPhysicsEngine.objectsMatrix[positionAfter.x][positionAfter.y - 1][positionAfter.z]) {
+        if (positionAfter.y > 0 && this.retardedPhysicsEngine.objectsMatrix[positionAfter.x][positionAfter.y - 1][positionAfter.z] === 0) {
           this.letAllFloatingObjectsFall()
         }
 

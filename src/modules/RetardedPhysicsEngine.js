@@ -72,7 +72,7 @@ class RetardedPhysicsEngine {
       for (let repetitions = 0; repetitions < 100; repetitions++) {
         setTimeout(() => {
           object.position.y = object.groundPosition + object.distanceAboveGround - this._easeOutCubic(repetitions / 100) * object.distanceAboveGround
-        }, repetitions * object.position.y)
+        }, repetitions * object.distanceAboveGround)
       }
 
       setTimeout(() => {
@@ -81,11 +81,11 @@ class RetardedPhysicsEngine {
         let previousPosition = this.utils.getObjectsFixedPosition(object.previousPosition, this.grid)
         this.objectsMatrix[actualPosition.x][actualPosition.y][actualPosition.z] = object
         this.objectsMatrix[previousPosition.x][previousPosition.y][previousPosition.z] = 0
-      }, 100 * object.position.y)
+      }, 100 * object.distanceAboveGround)
 
       setTimeout(() => {
         object.isFalling = false
-      }, 110 * object.position.y)
+      }, 110 * object.distanceAboveGround)
     }
 
     this.objectsWhichShouldFall = []
