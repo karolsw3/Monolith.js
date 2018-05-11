@@ -2,14 +2,13 @@ class LiveObject {
   constructor (object) {
     this.isMoving = false
     this.isFalling = false
-    this.horizontalCollision = false
 
     // Graphics
-    this.mesh = new THREE.Mesh(object.geometry, object.material)
+    this.mesh = object.mesh
     this.mesh.mouseDown = () => {}
-    this.mesh.defaultColor = this.mesh.material.color
+    // this.mesh.defaultColor = this.mesh.material.color
     this.position = this.mesh.position
-    this.width = this.mesh.geometry.parameters.width
+    this.stepDistance = object.stepDistance
     this.position.set = (x, y, z) => {
       this.position.x = x
       this.position.y = y
@@ -24,16 +23,16 @@ class LiveObject {
       setTimeout(() => {
         switch (direction) {
           case 'right':
-            this.position.x += this.width / 3 * 0.05
+            this.position.x += this.stepDistance / 3 * 0.05
             break
           case 'left':
-            this.position.x -= this.width / 3 * 0.05
+            this.position.x -= this.stepDistance / 3 * 0.05
             break
           case 'forward':
-            this.position.z -= this.width / 3 * 0.05
+            this.position.z -= this.stepDistance / 3 * 0.05
             break
           case 'backward':
-            this.position.z += this.width / 3 * 0.05
+            this.position.z += this.stepDistance / 3 * 0.05
             break
         }
       }, 1 * i)

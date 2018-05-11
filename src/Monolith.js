@@ -7,6 +7,7 @@ class Monolith {
     this.utils = new Utils()
     this.settings = settings
     this.loadedObjects = []
+    this.onObjectsLoad = () => {}
     this.intersectableObjects = []
     this.referenceObject = {}
     this.gravity = settings.gravity
@@ -77,9 +78,10 @@ class Monolith {
   createBlock (color) {
     let geometry = new THREE.CubeGeometry(this.grid.width, this.grid.height, this.grid.depth)
     let material = new THREE.MeshLambertMaterial({color})
+    let mesh = new THREE.Mesh(geometry, material)
     let object = {}
-    object.geometry = geometry
-    object.material = material
+    object.mesh = mesh
+    object.stepDistance = this.grid.width
     let block = new LiveObject(object)
     return block
   }
@@ -98,18 +100,19 @@ class Monolith {
   }
 
   loadObjects (objects) {
+    let objectsLoadedCount = 0
     for (let i = 0; i < objects.length; i++) {
-      this._getObjectJSON(objects[i].url, (object) => {
+      this._getObjectJSON(objects[i].url, (mesh) => {
+        let object = {mesh}
+        object.stepDistance = this.grid.width
         let liveObject = new LiveObject(object)
         this.loadedObjects[objects[i].name] = liveObject
+        objectsLoadedCount++
+        if (objectsLoadedCount === objects.length) {
+          this.onObjectsLoad()
+        }
       })
     }
-  }
-
-  loadObject (url) {
-    this._getObjectJSON(url, (object) => {
-      this.scene.add(object)
-    })
   }
 
   placeObject (object, x, y, z) {
@@ -154,7 +157,7 @@ class Monolith {
     let size = this.settings.sizeX * this.grid.width * k
     let divisions = this.settings.sizeX * k
     let gridHelper = new THREE.GridHelper(size, divisions)
-    gridHelper.position.set(this.grid.width / 2, this.grid.height / 2, this.grid.depth / 2)
+    gridHelper.position.set(this.grid.width / 2, -this.grid.height / 2, this.grid.depth / 2)
     this.scene.add(gridHelper)
   }
 

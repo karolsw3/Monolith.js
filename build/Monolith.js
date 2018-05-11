@@ -38,14 +38,13 @@ var LiveObject = function () {
 
     this.isMoving = false;
     this.isFalling = false;
-    this.horizontalCollision = false;
 
     // Graphics
-    this.mesh = new THREE.Mesh(object.geometry, object.material);
+    this.mesh = object.mesh;
     this.mesh.mouseDown = function () {};
-    this.mesh.defaultColor = this.mesh.material.color;
+    // this.mesh.defaultColor = this.mesh.material.color
     this.position = this.mesh.position;
-    this.width = this.mesh.geometry.parameters.width;
+    this.stepDistance = object.stepDistance;
     this.position.set = function (x, y, z) {
       _this.position.x = x;
       _this.position.y = y;
@@ -64,16 +63,16 @@ var LiveObject = function () {
         setTimeout(function () {
           switch (direction) {
             case 'right':
-              _this2.position.x += _this2.width / 3 * 0.05;
+              _this2.position.x += _this2.stepDistance / 3 * 0.05;
               break;
             case 'left':
-              _this2.position.x -= _this2.width / 3 * 0.05;
+              _this2.position.x -= _this2.stepDistance / 3 * 0.05;
               break;
             case 'forward':
-              _this2.position.z -= _this2.width / 3 * 0.05;
+              _this2.position.z -= _this2.stepDistance / 3 * 0.05;
               break;
             case 'backward':
-              _this2.position.z += _this2.width / 3 * 0.05;
+              _this2.position.z += _this2.stepDistance / 3 * 0.05;
               break;
           }
         }, 1 * i);
@@ -249,6 +248,7 @@ var Monolith = function () {
     this.utils = new Utils();
     this.settings = settings;
     this.loadedObjects = [];
+    this.onObjectsLoad = function () {};
     this.intersectableObjects = [];
     this.referenceObject = {};
     this.gravity = settings.gravity;
@@ -332,9 +332,10 @@ var Monolith = function () {
     value: function createBlock(color) {
       var geometry = new THREE.CubeGeometry(this.grid.width, this.grid.height, this.grid.depth);
       var material = new THREE.MeshLambertMaterial({ color: color });
+      var mesh = new THREE.Mesh(geometry, material);
       var object = {};
-      object.geometry = geometry;
-      object.material = material;
+      object.mesh = mesh;
+      object.stepDistance = this.grid.width;
       var block = new LiveObject(object);
       return block;
     }
@@ -352,25 +353,24 @@ var Monolith = function () {
     value: function loadObjects(objects) {
       var _this3 = this;
 
+      var objectsLoadedCount = 0;
+
       var _loop = function _loop(i) {
-        _this3._getObjectJSON(objects[i].url, function (object) {
+        _this3._getObjectJSON(objects[i].url, function (mesh) {
+          var object = { mesh: mesh };
+          object.stepDistance = _this3.grid.width;
           var liveObject = new LiveObject(object);
           _this3.loadedObjects[objects[i].name] = liveObject;
+          objectsLoadedCount++;
+          if (objectsLoadedCount === objects.length) {
+            _this3.onObjectsLoad();
+          }
         });
       };
 
       for (var i = 0; i < objects.length; i++) {
         _loop(i);
       }
-    }
-  }, {
-    key: 'loadObject',
-    value: function loadObject(url) {
-      var _this4 = this;
-
-      this._getObjectJSON(url, function (object) {
-        _this4.scene.add(object);
-      });
     }
   }, {
     key: 'placeObject',
@@ -422,7 +422,7 @@ var Monolith = function () {
       var size = this.settings.sizeX * this.grid.width * k;
       var divisions = this.settings.sizeX * k;
       var gridHelper = new THREE.GridHelper(size, divisions);
-      gridHelper.position.set(this.grid.width / 2, this.grid.height / 2, this.grid.depth / 2);
+      gridHelper.position.set(this.grid.width / 2, -this.grid.height / 2, this.grid.depth / 2);
       this.scene.add(gridHelper);
     }
   }, {
@@ -464,15 +464,15 @@ var Monolith = function () {
   }, {
     key: 'smoothlySetCameraPosition',
     value: function smoothlySetCameraPosition(position) {
-      var _this5 = this;
+      var _this4 = this;
 
       var translationX = -position.x * this.grid.width - this.camera.position.x;
       var translationZ = -position.z * this.grid.depth - this.camera.position.z;
       var frames = 100;
       for (var i = 0; i < frames; i++) {
         setTimeout(function () {
-          _this5.camera.position.x += translationX / frames + 0.2;
-          _this5.camera.position.z += translationZ / frames + 0.2;
+          _this4.camera.position.x += translationX / frames + 0.2;
+          _this4.camera.position.z += translationZ / frames + 0.2;
         }, i * 1);
       }
     }

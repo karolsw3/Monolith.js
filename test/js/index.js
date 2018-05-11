@@ -17,8 +17,10 @@ monolith.init()
 
 for (let x = 0; x < 10; x++) {
   for (let y = x; y < 10; y++) {
-    let block = monolith.createBlock(0xff4433)
-    monolith.placeObject(block, x, y, 2)
+    for (let z = 2; z < 10; z++) {
+      let block = monolith.createBlock(0xff4433)
+      monolith.placeObject(block, x, y, z)
+    }
   }
 }
 
@@ -31,7 +33,12 @@ monolith.attachCamera(player)
 monolith.placeObject(player, 0, 12, 2)
 monolith.letAllFloatingObjectsFall()
 
-monolith.loadObject('https://api.myjson.com/bins/1ewmje', -12, 14, -12)
+monolith.loadObjects([{url: 'https://api.myjson.com/bins/1ewmje', name: 'tree'}])
+
+monolith.onObjectsLoad = () => {
+  monolith.placeObject(monolith.loadedObjects['tree'], 3, 12, 3)
+}
+
 window.addEventListener('keydown', (event) => {
   var keyCode = event.keyCode
   switch (keyCode) {
