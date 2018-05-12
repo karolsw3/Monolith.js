@@ -33,10 +33,12 @@ monolith.attachCamera(player)
 monolith.placeObject(player, 0, 12, 2)
 monolith.letAllFloatingObjectsFall()
 
-monolith.loadObjects([{url: 'https://api.myjson.com/bins/1ewmje', name: 'tree'}])
+monolith.loadMeshes([{url: 'https://api.myjson.com/bins/1ewmje', name: 'tree'}])
 
-monolith.onObjectsLoad = () => {
-  monolith.placeObject(monolith.loadedObjects['tree'], 3, 12, 3)
+monolith.onMeshesLoad = () => {
+  monolith.placeObject(monolith.createObjectFromMesh(monolith.loadedMeshes['tree']), 0, 17, 0)
+  monolith.placeObject(monolith.createObjectFromMesh(monolith.loadedMeshes['tree']), 4, 17, 3)
+  monolith.placeObject(monolith.createObjectFromMesh(monolith.loadedMeshes['tree']), 4, 17, 5)
 }
 
 window.addEventListener('keydown', (event) => {

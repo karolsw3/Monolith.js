@@ -247,8 +247,8 @@ var Monolith = function () {
 
     this.utils = new Utils();
     this.settings = settings;
-    this.loadedObjects = [];
-    this.onObjectsLoad = function () {};
+    this.loadedMeshes = [];
+    this.onMeshesLoad = function () {};
     this.intersectableObjects = [];
     this.referenceObject = {};
     this.gravity = settings.gravity;
@@ -342,6 +342,15 @@ var Monolith = function () {
       return block;
     }
   }, {
+    key: 'createObjectFromMesh',
+    value: function createObjectFromMesh(mesh) {
+      var object = new LiveObject({
+        mesh: mesh.clone(),
+        stepDistance: this.grid.width
+      });
+      return object;
+    }
+  }, {
     key: '_getObjectJSON',
     value: function _getObjectJSON(url, onload) {
       this.loader.load(url, function (object) {
@@ -351,26 +360,23 @@ var Monolith = function () {
       });
     }
   }, {
-    key: 'loadObjects',
-    value: function loadObjects(objects) {
+    key: 'loadMeshes',
+    value: function loadMeshes(meshes) {
       var _this3 = this;
 
-      var objectsLoadedCount = 0;
+      var meshesLoadedCount = 0;
 
       var _loop = function _loop(i) {
-        _this3._getObjectJSON(objects[i].url, function (mesh) {
-          var object = { mesh: mesh };
-          object.stepDistance = _this3.grid.width;
-          var liveObject = new LiveObject(object);
-          _this3.loadedObjects[objects[i].name] = liveObject;
-          objectsLoadedCount++;
-          if (objectsLoadedCount === objects.length) {
-            _this3.onObjectsLoad();
+        _this3._getObjectJSON(meshes[i].url, function (mesh) {
+          _this3.loadedMeshes[meshes[i].name] = mesh;
+          meshesLoadedCount++;
+          if (meshesLoadedCount === meshes.length) {
+            _this3.onMeshesLoad();
           }
         });
       };
 
-      for (var i = 0; i < objects.length; i++) {
+      for (var i = 0; i < meshes.length; i++) {
         _loop(i);
       }
     }

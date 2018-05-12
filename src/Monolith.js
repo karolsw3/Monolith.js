@@ -6,8 +6,8 @@ class Monolith {
   constructor (settings) {
     this.utils = new Utils()
     this.settings = settings
-    this.loadedObjects = []
-    this.onObjectsLoad = () => {}
+    this.loadedMeshes = []
+    this.onMeshesLoad = () => {}
     this.intersectableObjects = []
     this.referenceObject = {}
     this.gravity = settings.gravity
@@ -88,6 +88,14 @@ class Monolith {
     return block
   }
 
+  createObjectFromMesh (mesh) {
+    let object = new LiveObject({
+      mesh: mesh.clone(),
+      stepDistance: this.grid.width
+    })
+    return object
+  }
+
   _getObjectJSON (url, onload) {
     this.loader.load(
       url,
@@ -101,17 +109,14 @@ class Monolith {
     )
   }
 
-  loadObjects (objects) {
-    let objectsLoadedCount = 0
-    for (let i = 0; i < objects.length; i++) {
-      this._getObjectJSON(objects[i].url, (mesh) => {
-        let object = {mesh}
-        object.stepDistance = this.grid.width
-        let liveObject = new LiveObject(object)
-        this.loadedObjects[objects[i].name] = liveObject
-        objectsLoadedCount++
-        if (objectsLoadedCount === objects.length) {
-          this.onObjectsLoad()
+  loadMeshes (meshes) {
+    let meshesLoadedCount = 0
+    for (let i = 0; i < meshes.length; i++) {
+      this._getObjectJSON(meshes[i].url, (mesh) => {
+        this.loadedMeshes[meshes[i].name] = mesh
+        meshesLoadedCount++
+        if (meshesLoadedCount === meshes.length) {
+          this.onMeshesLoad()
         }
       })
     }
