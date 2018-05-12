@@ -282,7 +282,9 @@ var Monolith = function () {
       this.scene.background = new THREE.Color(this.settings.backgroundColor);
       this.camera.position.set(this.grid.width, this.grid.width, this.grid.width);
       this.camera.lookAt(this.scene.position);
-      this.camera.position.y = 20;
+      this.camera.position.y = 100;
+      this.camera.position.x = 100;
+      this.camera.position.z = 100;
       this._addLights();
       this._addGrid();
       this.renderer.setSize(window.innerWidth, window.innerHeight);
@@ -471,8 +473,8 @@ var Monolith = function () {
       var frames = 100;
       for (var i = 0; i < frames; i++) {
         setTimeout(function () {
-          _this4.camera.position.x += translationX / frames + 0.2;
-          _this4.camera.position.z += translationZ / frames + 0.2;
+          _this4.camera.position.x += translationX / frames + 1;
+          _this4.camera.position.z += translationZ / frames + 1;
         }, i * 1);
       }
     }
