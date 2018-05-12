@@ -1,11 +1,5 @@
 'use strict';
 
-var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) {
-  return typeof obj;
-} : function (obj) {
-  return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
-};
-
 var classCallCheck = function (instance, Constructor) {
   if (!(instance instanceof Constructor)) {
     throw new TypeError("Cannot call a class as a function");
@@ -42,6 +36,7 @@ var LiveObject = function () {
     // Graphics
     this.mesh = object.mesh;
     this.mesh.mouseDown = function () {};
+    this.mesh.mouseMove = function () {};
     // this.mesh.defaultColor = this.mesh.material.color
     this.position = this.mesh.position;
     this.stepDistance = object.stepDistance;
@@ -440,16 +435,9 @@ var Monolith = function () {
       var mouse3D = new THREE.Vector3(event.clientX / window.innerWidth * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1, 0.5);
       this.raycaster.setFromCamera(mouse3D, this.camera);
       var intersects = this.raycaster.intersectObjects(this.intersectableObjects);
-      if (_typeof(intersects[0]) === 'object') {
-        if (this.intersectedObject.id !== intersects[0].object.id) {
-          try {
-            this.intersectedObject.material.color = { r: this.intersectedObject.defaultColor.r, g: this.intersectedObject.defaultColor.g, b: this.intersectedObject.defaultColor.b };
-          } catch (e) {}
-          this.intersectedObject = intersects[0].object;
-        } else {
-          intersects[0].object.material.color = { r: 255, g: 255, b: 255 };
-        }
-      }
+      intersects.forEach(function (object) {
+        object.object.mouseMove();
+      });
     }
   }, {
     key: 'mouseDown',

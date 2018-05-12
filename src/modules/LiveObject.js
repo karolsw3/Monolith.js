@@ -6,6 +6,7 @@ class LiveObject {
     // Graphics
     this.mesh = object.mesh
     this.mesh.mouseDown = () => {}
+    this.mesh.mouseMove = () => {}
     // this.mesh.defaultColor = this.mesh.material.color
     this.position = this.mesh.position
     this.stepDistance = object.stepDistance

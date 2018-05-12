@@ -173,16 +173,9 @@ class Monolith {
     let mouse3D = new THREE.Vector3((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1, 0.5)
     this.raycaster.setFromCamera(mouse3D, this.camera)
     let intersects = this.raycaster.intersectObjects(this.intersectableObjects)
-    if (typeof intersects[0] === 'object') {
-      if (this.intersectedObject.id !== intersects[0].object.id) {
-        try {
-          this.intersectedObject.material.color = {r: this.intersectedObject.defaultColor.r, g: this.intersectedObject.defaultColor.g, b: this.intersectedObject.defaultColor.b}
-        } catch (e) {}
-        this.intersectedObject = intersects[0].object
-      } else {
-        intersects[0].object.material.color = {r: 255, g: 255, b: 255}
-      }
-    }
+    intersects.forEach((object) => {
+      object.object.mouseMove()
+    })
   }
 
   mouseDown (event) {
