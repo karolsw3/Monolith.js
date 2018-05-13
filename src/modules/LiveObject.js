@@ -2,7 +2,7 @@ class LiveObject {
   constructor (object) {
     this.isMoving = false
     this.isFalling = false
-
+    this.boundingBox = object.boundingBox
     // Graphics
     this.mesh = object.mesh
     this.mesh.mouseDown = () => {}
@@ -15,6 +15,14 @@ class LiveObject {
       this.position.y = y
       this.position.z = z
     }
+  }
+
+  get height () {
+    return this.boundingBox.max.y
+  }
+
+  get width () {
+    return this.boundingBox.max.x
   }
 
   move (direction, callback) {

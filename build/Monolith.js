@@ -32,7 +32,7 @@ var LiveObject = function () {
 
     this.isMoving = false;
     this.isFalling = false;
-
+    this.boundingBox = object.boundingBox;
     // Graphics
     this.mesh = object.mesh;
     this.mesh.mouseDown = function () {};
@@ -76,6 +76,16 @@ var LiveObject = function () {
         _this2.isMoving = false;
         callback();
       }, 70);
+    }
+  }, {
+    key: 'height',
+    get: function get$$1() {
+      return this.boundingBox.max.y;
+    }
+  }, {
+    key: 'width',
+    get: function get$$1() {
+      return this.boundingBox.max.x;
     }
   }]);
   return LiveObject;
@@ -185,7 +195,7 @@ var RetardedPhysicsEngine = function () {
 
         var _loop2 = function _loop2(repetitions) {
           setTimeout(function () {
-            object.position.y = object.groundPosition + object.distanceAboveGround - _this._easeOutCubic(repetitions / 100) * object.distanceAboveGround;
+            object.position.y = object.groundPosition * _this.grid.height + object.distanceAboveGround - _this._easeOutCubic(repetitions / 100) * object.distanceAboveGround;
           }, repetitions * object.distanceAboveGround);
         };
 
@@ -339,9 +349,11 @@ var Monolith = function () {
   }, {
     key: 'createObjectFromMesh',
     value: function createObjectFromMesh(mesh) {
+      var boundingBox = new THREE.Box3().setFromObject(mesh);
       var object = new LiveObject({
         mesh: mesh.clone(),
-        stepDistance: this.grid.width
+        stepDistance: this.grid.width,
+        boundingBox: boundingBox
       });
       return object;
     }
@@ -435,7 +447,9 @@ var Monolith = function () {
       var mouse3D = new THREE.Vector3(event.clientX / window.innerWidth * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1, 0.5);
       this.raycaster.setFromCamera(mouse3D, this.camera);
       var intersects = this.raycaster.intersectObjects(this.intersectableObjects);
-      intersects[0].object.mouseMove();
+      if (intersects.length > 0) {
+        intersects[0].object.mouseMove();
+      }
     }
   }, {
     key: 'mouseDown',
@@ -444,7 +458,9 @@ var Monolith = function () {
       var mouse3D = new THREE.Vector3(event.clientX / window.innerWidth * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1, 0.5);
       this.raycaster.setFromCamera(mouse3D, this.camera);
       var intersects = this.raycaster.intersectObjects(this.intersectableObjects);
-      intersects[0].object.mouseDown();
+      if (intersects.length > 0) {
+        intersects[0].object.mouseDown();
+      }
     }
   }, {
     key: '_checkIfObjectIsWithinRenderDistance',

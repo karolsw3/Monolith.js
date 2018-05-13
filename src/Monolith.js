@@ -89,9 +89,11 @@ class Monolith {
   }
 
   createObjectFromMesh (mesh) {
+    let boundingBox = new THREE.Box3().setFromObject(mesh)
     let object = new LiveObject({
       mesh: mesh.clone(),
-      stepDistance: this.grid.width
+      stepDistance: this.grid.width,
+      boundingBox
     })
     return object
   }
@@ -173,7 +175,9 @@ class Monolith {
     let mouse3D = new THREE.Vector3((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1, 0.5)
     this.raycaster.setFromCamera(mouse3D, this.camera)
     let intersects = this.raycaster.intersectObjects(this.intersectableObjects)
-    intersects[0].object.mouseMove()
+    if (intersects.length > 0) {
+      intersects[0].object.mouseMove()
+    }
   }
 
   mouseDown (event) {
@@ -181,7 +185,9 @@ class Monolith {
     let mouse3D = new THREE.Vector3((event.clientX / window.innerWidth) * 2 - 1, -(event.clientY / window.innerHeight) * 2 + 1, 0.5)
     this.raycaster.setFromCamera(mouse3D, this.camera)
     let intersects = this.raycaster.intersectObjects(this.intersectableObjects)
-    intersects[0].object.mouseDown()
+    if (intersects.length > 0) {
+      intersects[0].object.mouseDown()
+    }
   }
 
   _checkIfObjectIsWithinRenderDistance (object) {
