@@ -81,9 +81,11 @@ class Monolith {
     let geometry = new THREE.CubeGeometry(this.grid.width, this.grid.height, this.grid.depth)
     let material = new THREE.MeshLambertMaterial({color})
     let mesh = new THREE.Mesh(geometry, material)
+    let boundingBox = new THREE.Box3().setFromObject(mesh)
     let object = {}
     object.mesh = mesh
     object.stepDistance = this.grid.width
+    object.boundingBox = boundingBox
     let block = new LiveObject(object)
     return block
   }
@@ -129,9 +131,14 @@ class Monolith {
     let h = this.grid.height
 
     object.position.set(-x * w, y * h, -z * w)
+    object.boxHelper.update()
 
     this.intersectableObjects.push(object.mesh)
     this.scene.add(object.mesh)
+
+    if (this.settings.wireFrameMode) {
+      this.scene.add(object.boxHelper)
+    }
 
     // RetardedPhysicsEngine.js
     this.retardedPhysicsEngine.addObject(object)

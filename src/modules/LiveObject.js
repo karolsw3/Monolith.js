@@ -5,6 +5,7 @@ class LiveObject {
     this.boundingBox = object.boundingBox
     // Graphics
     this.mesh = object.mesh
+    this.boxHelper = new THREE.BoxHelper(this.mesh, 0xffff00)
     this.mesh.mouseDown = () => {}
     this.mesh.mouseMove = () => {}
     // this.mesh.defaultColor = this.mesh.material.color
@@ -44,6 +45,7 @@ class LiveObject {
             this.position.z += this.stepDistance / 3 * 0.05
             break
         }
+        this.boxHelper.update()
       }, 1 * i)
     }
     setTimeout(() => {

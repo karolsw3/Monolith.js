@@ -35,6 +35,7 @@ var LiveObject = function () {
     this.boundingBox = object.boundingBox;
     // Graphics
     this.mesh = object.mesh;
+    this.boxHelper = new THREE.BoxHelper(this.mesh, 0xffff00);
     this.mesh.mouseDown = function () {};
     this.mesh.mouseMove = function () {};
     // this.mesh.defaultColor = this.mesh.material.color
@@ -70,6 +71,7 @@ var LiveObject = function () {
               _this2.position.z += _this2.stepDistance / 3 * 0.05;
               break;
           }
+          _this2.boxHelper.update();
         }, 1 * i);
       }
       setTimeout(function () {
@@ -196,6 +198,7 @@ var RetardedPhysicsEngine = function () {
         var _loop2 = function _loop2(repetitions) {
           setTimeout(function () {
             object.position.y = object.groundPosition * _this.grid.height + object.distanceAboveGround - _this._easeOutCubic(repetitions / 100) * object.distanceAboveGround;
+            object.boxHelper.update();
           }, repetitions * object.distanceAboveGround);
         };
 
@@ -340,9 +343,11 @@ var Monolith = function () {
       var geometry = new THREE.CubeGeometry(this.grid.width, this.grid.height, this.grid.depth);
       var material = new THREE.MeshLambertMaterial({ color: color });
       var mesh = new THREE.Mesh(geometry, material);
+      var boundingBox = new THREE.Box3().setFromObject(mesh);
       var object = {};
       object.mesh = mesh;
       object.stepDistance = this.grid.width;
+      object.boundingBox = boundingBox;
       var block = new LiveObject(object);
       return block;
     }
@@ -394,9 +399,14 @@ var Monolith = function () {
       var h = this.grid.height;
 
       object.position.set(-x * w, y * h, -z * w);
+      object.boxHelper.update();
 
       this.intersectableObjects.push(object.mesh);
       this.scene.add(object.mesh);
+
+      if (this.settings.wireFrameMode) {
+        this.scene.add(object.boxHelper);
+      }
 
       // RetardedPhysicsEngine.js
       this.retardedPhysicsEngine.addObject(object);

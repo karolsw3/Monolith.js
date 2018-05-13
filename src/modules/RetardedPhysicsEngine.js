@@ -72,6 +72,7 @@ class RetardedPhysicsEngine {
       for (let repetitions = 0; repetitions < 100; repetitions++) {
         setTimeout(() => {
           object.position.y = object.groundPosition * this.grid.height + object.distanceAboveGround - this._easeOutCubic(repetitions / 100) * object.distanceAboveGround
+          object.boxHelper.update()
         }, repetitions * object.distanceAboveGround)
       }
 
